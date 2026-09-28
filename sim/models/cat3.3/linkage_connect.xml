@@ -1,0 +1,14 @@
+<mujoco model="cat3.3_linkage_connect">
+  <!-- 四连杆闭环:<connect> 软约束对照版(4 个,仅供对比实验)
+       由 scripts/planE_4legs_official.py 重新生成,勿手改 -->
+<equality>
+    <connect name="leg1_fourbar" site1="leg1_link4_connect" site2="leg1_link5_connect"
+        solref="0.003 1.05" solimp="1.0 0.95 0.002 1.0 6"/>
+    <connect name="leg2_fourbar" site1="leg2_link9_connect" site2="leg2_link10_connect"
+        solref="0.003 1.05" solimp="1.0 0.95 0.002 1.0 6"/>
+    <connect name="leg3_fourbar" site1="leg3_link14_connect" site2="leg3_link15_connect"
+        solref="0.003 1.05" solimp="1.0 0.95 0.002 1.0 6"/>
+    <connect name="leg4_fourbar" site1="leg4_link19_connect" site2="leg4_link20_connect"
+        solref="0.003 1.05" solimp="1.0 0.95 0.002 1.0 6"/>
+  </equality>
+</mujoco>

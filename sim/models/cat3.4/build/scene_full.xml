@@ -1,0 +1,88 @@
+<mujoco model="cat3.4_scene">
+  <!-- ============================================================
+       场景入口(menagerie 风格):include 本体 + 闭环模块 + 环境
+       加载: python -m mujoco.viewer scene.xml
+       ============================================================ -->
+  <include file="robot_full.xml"/>
+  <!-- vramfix 2026-09-13: MJX 编译期按候选 pair 数定死接触/约束缓冲(ncon=220,
+       nefc=920, efc_J 每环境 920x26x4B≈96KB), 512 env 全碰撞训练直接撑爆 8GB
+       显存。这两个 numeric 是 MJX collision_driver 的官方缩槽开关:
+         max_geom_pairs=100   每 collision-function 组最多算 100 对 mesh pair
+         max_contact_points=40 全模型最多保留 40 个接触点(实测真接触峰值 <54/4≈14 组)
+       压完: ncon=40, nefc=192, 与主训练(Joystick 精简模型 nefc=120)同量级。 -->
+  <custom>
+    <numeric name="max_geom_pairs" data="100" />
+    <numeric name="max_contact_points" data="40" />
+  </custom>
+  <include file="linkage_joint.xml"/>
+  <!-- ===== 2026-09-14 精细碰撞过滤 =====
+       保留: 纯铰接相邻对 + 髋部vs机身(几何重叠) 的排除。
+       11:40 煜辰裁定: 小腿(Link5族)的真机干涉要打开 → 大腿↔小腿 / 连杆↔小腿 已注释。 -->
+  <contact>
+    <exclude body1="base_link" body2="Link1"/>
+    <exclude body1="Link1" body2="Link2"/>
+    <exclude body1="Link2" body2="Link3"/>
+    <exclude body1="Link3" body2="Link4"/>
+    <!-- 大腿↔小腿（真机干涉，煜辰要求打开） -->
+    <!-- <exclude body1="Link2" body2="Link5"/> -->
+    <exclude body1="base_link" body2="Link6"/>
+    <exclude body1="Link6" body2="Link7"/>
+    <exclude body1="Link7" body2="Link8"/>
+    <exclude body1="Link8" body2="Link9"/>
+    <!-- <exclude body1="Link7" body2="Link10"/> -->
+    <exclude body1="base_link" body2="Link11"/>
+    <exclude body1="Link11" body2="Link12"/>
+    <exclude body1="Link12" body2="Link13"/>
+    <exclude body1="Link13" body2="Link14"/>
+    <!-- <exclude body1="Link12" body2="Link15"/> -->
+    <exclude body1="base_link" body2="Link16"/>
+    <exclude body1="Link16" body2="Link17"/>
+    <exclude body1="Link17" body2="Link18"/>
+    <exclude body1="Link18" body2="Link19"/>
+    <!-- <exclude body1="Link17" body2="Link20"/> -->
+    <!-- 连杆↔小腿（真机干涉，煜辰要求打开） -->
+    <!-- <exclude body1="Link4" body2="Link5"/> -->
+    <!-- <exclude body1="Link9" body2="Link10"/> -->
+    <!-- <exclude body1="Link14" body2="Link15"/> -->
+    <!-- <exclude body1="Link19" body2="Link20"/> -->
+    <exclude body1="base_link" body2="Link2"/>
+    <exclude body1="base_link" body2="Link7"/>
+    <exclude body1="base_link" body2="Link12"/>
+    <exclude body1="base_link" body2="Link17"/>
+  </contact>
+  <!-- 环境:物理参数 + 视觉 + 地面/灯光(换场景只改这里,不动 robot.xml) -->
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" cone="pyramidal" iterations="100"/>
+  <visual>
+    <global realtime="1" />
+    <quality shadowsize="16384" numslices="28" offsamples="4" />
+    <headlight diffuse="1 1 1" specular="0.5 0.5 0.5" active="1" />
+    <rgba fog="0 0 0 1" haze="0 1 0 1" />
+  </visual>
+  <asset>
+    <texture type="skybox" file="textures/desert.png"
+        gridsize="3 4" gridlayout=".U..LFRB.D.." />
+    <texture name="plane" type="2d" builtin="checker" rgb1=".25 .25 .25" rgb2=".75 .75 .75"
+        width="512" height="512" mark="cross" markrgb=".7 .7 .7" />
+    <material name="plane" reflectance="0.05" texture="plane" texrepeat="1 1" texuniform="true" specular="0.1"/>
+    <material name="box" rgba="0 0.5 0 1"  emission="0"/>
+  </asset>
+  <worldbody>
+    <geom name="floor" pos="0 0 -0.07" size="10 10 0.02" type="plane" material="plane"
+        condim="3" friction="0.4 0.005 0.0001"/>
+    <light directional="true" ambient=".3 .3 .3" pos="30 30 30" dir="0 -.5 -1"
+        diffuse=".5 .5 .5" specular=".5 .5 .5" />
+  </worldbody>
+  <!-- 2026-08-22: 用户调好的参考站姿(control 面板: servo_joint2=-0.0476, servo3=1.04, servo7=0.125, servo8=-0.959) -->
+  <!--   keyframe qpos=前后腿补偿, 作为 RL 的 default_joint_position/初始姿态 -->
+  <!-- 2026-09-11 站姿优化: 后腿髋俯仰 0.048->0.34, 膝 1.04->1.20 (力矩 0.796->0.264 N*m) -->
+  <!--   原因: 原站姿后腿承重 62.8%, 髋俯仰需 0.796 N*m = 额定(0.49)的 1.6 倍, 长期过载 -->
+  <!--   优化后: 承重 48.7%(接近均衡), 髋俯仰 0.264 N*m(额定 54%), 机身俯仰 3.1->4.9 度, 站高 +5mm -->
+  <keyframe>
+    <!-- 2026-08-22 修正: 参考姿态改为左右对称(后左/后右精确镜像) -->
+    <!--   后左 joint2=-0.0476, joint3=1.04; 后右 joint7=0.0476, joint8=-1.04 -->
+    <!--   (原 7=0.125/8=-0.959 左右不对称 -> roll 侧倾; 改镜像后 roll≈0) -->
+    <!-- 2026-09-13 cat3.4 定案B: 后腿 j2=+0.25 j3=+0.30 (邻域最坏扭矩 0.316 N·m, 髋余量15.5°) -->
+    <key name="stand" qpos="-0.029480 -0.000040 0.106580 0.998969694 -0.001025546 0.045370648 0.000046578 -0.00091 0.250000 0.300000 -0.142018 -0.087996 0.00059 -0.250000 -0.300000 0.142017 0.087997 -0.00036 -0.00178 0.00059 -0.00233 -0.00311 0.00071 0.00230 -0.00074 0.00237 0.00380"
+      ctrl="0.0000 0.0000 0.250000 0.300000 0.0000 -0.250000 -0.300000 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000"/>
+  </keyframe>
+</mujoco>

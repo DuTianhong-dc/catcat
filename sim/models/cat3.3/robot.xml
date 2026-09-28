@@ -1,0 +1,439 @@
+<mujoco model="cat3.3_robot">
+  <!-- ============================================================
+       机器人本体(menagerie 风格,自包含,可独立加载)
+       - asset: 全部 mesh(含 base_hull)
+       - default: 舵机参数 class(servo)
+       - worldbody: body 树 + joint + geom + site
+       - actuator: 占位 motor + 12 position(class=servo)
+       - contact: 碰撞排除
+       独立加载: python -m mujoco.viewer robot.xml (无闭环约束)
+       完整场景: scene.xml (joint equality) / scene_connect.xml (connect)
+       ============================================================ -->
+  <compiler angle="radian" />
+
+  <asset>
+    <mesh name="base_link_decimated" content_type="model/stl" file="meshes/base_link_decimated.STL" />
+    <mesh name="Link1" content_type="model/stl" file="meshes/Link1.STL" />
+    <mesh name="Link2" content_type="model/stl" file="meshes/Link2.STL" />
+    <mesh name="Link3" content_type="model/stl" file="meshes/Link3.STL" />
+    <mesh name="Link4" content_type="model/stl" file="meshes/Link4.STL" />
+    <mesh name="Link5" content_type="model/stl" file="meshes/Link5.STL" />
+    <mesh name="Link6" content_type="model/stl" file="meshes/Link6.STL" />
+    <mesh name="Link7" content_type="model/stl" file="meshes/Link7.STL" />
+    <mesh name="Link8" content_type="model/stl" file="meshes/Link8.STL" />
+    <mesh name="Link9" content_type="model/stl" file="meshes/Link9.STL" />
+    <mesh name="Link10" content_type="model/stl" file="meshes/Link10.STL" />
+    <mesh name="Link11" content_type="model/stl" file="meshes/Link11.STL" />
+    <mesh name="Link12" content_type="model/stl" file="meshes/Link12.STL" />
+    <mesh name="Link13" content_type="model/stl" file="meshes/Link13.STL" />
+    <mesh name="Link14" content_type="model/stl" file="meshes/Link14.STL" />
+    <mesh name="Link15" content_type="model/stl" file="meshes/Link15.STL" />
+    <mesh name="Link16" content_type="model/stl" file="meshes/Link16.STL" />
+    <mesh name="Link17" content_type="model/stl" file="meshes/Link17.STL" />
+    <mesh name="Link18" content_type="model/stl" file="meshes/Link18.STL" />
+    <mesh name="Link19" content_type="model/stl" file="meshes/Link19.STL" />
+    <mesh name="Link20" content_type="model/stl" file="meshes/Link20.STL" />
+    <!-- 碰撞用凸包(2026-08-27): 原始 mesh 太稠密(52万顶点), MJX 批量碰撞按凸包顶点×环境数分配显存导致 OOM;
+         外观保留原 mesh(contype=0), 碰撞换 *_hull(共约3.6千顶点)。惯量为显式 <inertial>, 动力学不变 -->
+    <mesh name="Link10_hull" content_type="model/stl" file="meshes/Link10_hull.STL" />
+    <mesh name="Link11_hull" content_type="model/stl" file="meshes/Link11_hull.STL" />
+    <mesh name="Link12_hull" content_type="model/stl" file="meshes/Link12_hull.STL" />
+    <mesh name="Link13_hull" content_type="model/stl" file="meshes/Link13_hull.STL" />
+    <mesh name="Link14_hull" content_type="model/stl" file="meshes/Link14_hull.STL" />
+    <mesh name="Link15_hull" content_type="model/stl" file="meshes/Link15_hull.STL" />
+    <mesh name="Link16_hull" content_type="model/stl" file="meshes/Link16_hull.STL" />
+    <mesh name="Link17_hull" content_type="model/stl" file="meshes/Link17_hull.STL" />
+    <mesh name="Link18_hull" content_type="model/stl" file="meshes/Link18_hull.STL" />
+    <mesh name="Link19_hull" content_type="model/stl" file="meshes/Link19_hull.STL" />
+    <mesh name="Link1_hull" content_type="model/stl" file="meshes/Link1_hull.STL" />
+    <mesh name="Link20_hull" content_type="model/stl" file="meshes/Link20_hull.STL" />
+    <mesh name="Link2_hull" content_type="model/stl" file="meshes/Link2_hull.STL" />
+    <mesh name="Link3_hull" content_type="model/stl" file="meshes/Link3_hull.STL" />
+    <mesh name="Link4_hull" content_type="model/stl" file="meshes/Link4_hull.STL" />
+    <mesh name="Link5_hull" content_type="model/stl" file="meshes/Link5_hull.STL" />
+    <mesh name="Link6_hull" content_type="model/stl" file="meshes/Link6_hull.STL" />
+    <mesh name="Link7_hull" content_type="model/stl" file="meshes/Link7_hull.STL" />
+    <mesh name="Link8_hull" content_type="model/stl" file="meshes/Link8_hull.STL" />
+    <mesh name="Link9_hull" content_type="model/stl" file="meshes/Link9_hull.STL" />
+    <mesh name="base_hull" content_type="model/stl" file="meshes/base_hull.STL" />
+  </asset>
+
+  <!-- 舵机默认参数(单一事实来源):kp/kv/forcerange 集中定义,执行器只需 ctrlrange -->
+  <default>
+    <default class="servo">
+      <position kp="100" kv="2.0" forcerange="-1.91 1.91"/>
+    </default>
+    <default class="servo_joint">
+           <!-- 2026-08-21 社区校准: Rhoban/BAM(ICRA2025) 示波器实测 STS3215@7.4V 辨识值
+           (bam/params/feetech_sts3215_7_4V/m1.json, to_mujoco 换算):
+           armature=0.0284 kg·m2 / friction_base=0.0524 N·m / friction_viscous=0.0591
+           替换旧值(旧: 规格书机械时间常数法 0.033 / 空载电流反推 0.125 / 估 0.05)
+           说明: BAM 的 kt=1.2116 拟合偏大 -> forcerange 仍用规格堵转 1.912;
+                 BAM 无 kv(反电动势折入 damping), 我们 kv=0.35 承担 -> damping 用其粘性项 0.059
+           kp=100 保持(规格 PID P=32 等效区间 40~157 内, BAM kp=17.26 口径不同) -->
+      <joint armature="0.0284" frictionloss="0.0524" damping="0.059"/>
+    </default>
+    <default class="bear6804">
+      <!-- 小腿关节轴承 6804(20x32x7): 滚动摩擦 ~0.2 N·mm + 密封 ~1 N·mm ≈ 0.002 N·m -->
+      <joint frictionloss="0.002" damping="0.02"/>
+    </default>
+    <default class="bear688">
+      <!-- 连杆铰点轴承 688(8x16x5): 滚动摩擦 ~0.03 N·mm + 密封 ≈ 0.001 N·m -->
+      <joint frictionloss="0.001" damping="0.02"/>
+    </default>
+  </default>
+
+  <worldbody>
+  <!-- ============================================================
+       肢体总览(4 条腿, 每条腿 5 段 Link, 四连杆闭环):
+       base_link(躯干)
+       └─ Link1 (joint1=abd 髋侧摆/横摆)
+          └─ Link2 (joint2=hip 髋俯仰)
+             ├─ Link3 (joint3=膝=【曲柄 crank】)
+             │    └─ Link4 (joint4=【连杆 coupler】, 被动)
+             └─ Link5 (joint5=【摇杆+小腿/脚掌】, 被动, 触地)
+       关节号规律(前进方向=+X):
+       后左腿=joint1-5  后右腿=joint6-10
+       前左腿=joint11-15  前右腿=joint16-20
+       主动(servo)=joint1,2,3 / 6,7,8 / 11,12,13 / 16,17,18 (12个)
+       被动(bear)= joint4,5 / 9,10 / 14,15 / 19,20 (8个, 四连杆)
+       ============================================================ -->
+    <!-- 2026-08-22: base_link 初始姿态=稳定站姿(前倾7.55°, 高度0.113) -->
+    <!--   原 pos=0 -> 加载时腿深嵌地面(全零关节前腿-0.204/后腿-0.16, 地面-0.07) -> 弹起 -->
+    <!--   body pos/quat 决定 freejoint 初始 qpos -> viewer 加载即稳定, 不嵌地 -->
+    <body name="base_link" pos="0.0211 0.0002 0.1133" quat="0.9978 -0.0009 0.0659 -0.0003">
+      <freejoint />
+           <!-- inertial 从 URDF 补回（cat3.3.urdf base_link 原始值）：
+           转换时丢失 → MuJoCo 按 mesh 密度1000kg/m³ 兜底算成 8.53kg，已修正为 SolidWorks 真实值 1.8064kg -->
+      <inertial pos="0.013587 0.00013061 -0.0082607" quat="-0.00190685141 0.725110504 0.0106253158 0.688547909" mass="1.8064" diaginertia="0.00523771661 0.00368162211 0.00210766128" />
+      <geom type="mesh" rgba="0.90 0.25 0.15 1" mesh="base_link_decimated" contype="0" conaffinity="0" group="2" />
+      <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+      <geom type="mesh" name="base_hull" mesh="base_hull" contype="2" conaffinity="1" group="3" rgba="0.3 0.3 0.3 0.4" />
+           <!-- 传感器安装位(2026-08-21):
+           真实: IMU901 躯干中心 / VL53L0X 前缘朝前 / OV2640 前缘朝前(占位)
+           虚拟: 线速度基准同 IMU 位 -->
+      <site name="imu_mount" pos="0.013587 0.00013061 -0.0082607" quat="1 0 0 0" size="0.005" rgba="0 1 0 0.6" group="4"/>
+      <site name="tof_mount" pos="0.19 0 0.05" quat="0.7071 0 0.7071 0" size="0.005" rgba="0 1 0 0.6" group="4"/>
+      <site name="ultrasonic_mount" pos="0.19 -0.012 0.05" quat="0.7071 0 0.7071 0" size="0.005" rgba="0 1 0 0.6" group="4"/>
+      <camera name="cam_front" pos="0.19 0 0.05" xyaxes="0 -1 0 0 0 1" fovy="70"/>
+      <!-- camfix 2026-08-29: 加两个"跟随"摄像机(挂在 base_link 下, 会随机体移动)。
+           背景: mjx_env.render() 的 camera 参数默认值是 -1, 即 MuJoCo 默认自由
+           机位 —— 它 lookat 固定、不跟随机器人, 猫一走就出画, 看起来像在
+           "侧着走"。而上面那个 cam_front 虽挂在 base_link 下本该跟随, 却因
+            pos 在 x=+0.19(机器人前方) 且视线朝 +x, 等于背对本体, 照不到东西。
+           这两个是给 render(camera="...") 显式指定用的:
+             cam_top  : 正上方俯视。画面横轴 = base x(前后), 纵轴 = base y(左右),
+                        一眼可判"身体朝向"与"移动方向"是否一致
+             cam_back : 正后方 -x, 略微俯视, 看步态姿态; 猫朝画面深处走
+           注意: camera 不参与物理计算, 加它们对仿真零影响。 -->
+      <camera name="cam_top" pos="0 0 1.1" xyaxes="1 0 0 0 1 0" fovy="55"/>
+      <camera name="cam_back" pos="-0.6 0 0.4" xyaxes="0 -1 0 0.447 0 0.894" fovy="60"/>
+      <!-- cam_follow: 右后方 45 度俯视, 观感最接近"原来那个默认机位"但会跟随。
+           俯视(cam_top)只能靠地面格子找参照, 看步态很难受, 这个视角能同时
+           看到躯干姿态 + 四条腿 + 地面参照物, 是看走路的默认选择。 -->
+      <camera name="cam_follow" pos="-0.55 -0.45 0.4" xyaxes="0.634 -0.774 0 0.318 0.261 0.911" fovy="55"/>
+      <!-- gaitfix 2026-08-28: 原 4 个 foot_* site 挂在躯干上(虚拟触地占位),
+           现已移到四个脚掌 body 上(名字不变), 供步态奖励量脚的位置 -->
+           <!-- 凸包显示 geom（诊断用，group 2 默认显示，viewer 里可直接看）：
+           半透明蓝色 = base 的凸包（碰撞实际用的形状），contype=0 不参与碰撞纯显示 -->
+      <!-- 后左腿根/髋(abd): 从 base_link 伸出, joint1 绕Z横摆(外展/内收) [x=-0.16=后, y=-0.06=左] -->
+      <body name="Link1" pos="-0.16061 -0.062655 -0.0018124" quat="0.499998 -0.5 0.500002 -0.5">
+      <inertial pos="0.00600186 0.00723091 -0.0209237" quat="0.69915 0.645052 -0.19665 0.237541" mass="0.113508" diaginertia="3.75114e-05 3.52704e-05 2.44814e-05" />
+      <!-- abd 髋侧摆(髋横摆): 主动舵机(joint1) -->
+      <joint name="joint1" class="servo_joint" pos="0 0 0" axis="0 0 1" range="-1.3 0.7" actuatorfrcrange="-1.91 1.91" />
+      <geom type="mesh" rgba="0.95 0.70 0.10 1" mesh="Link1" contype="0" conaffinity="0" group="2" />
+      <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+      <geom type="mesh" name="Link1_hull" mesh="Link1_hull" contype="4" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+      <!-- 后左大腿(hip 髋俯仰): joint2 绕Z前后摆(俯仰), 驱动前后支撑 -->
+      <body name="Link2" pos="0.029007 -0.0024191 -0.02249" quat="0.499323 -0.499325 -0.500676 0.500675">
+        <inertial pos="-0.0208018 2.20259e-05 0.00215652" quat="-0.00238445 0.750456 -0.00238797 0.660912" mass="0.169369" diaginertia="0.000220786 0.000217943 3.16008e-05" />
+        <!-- hip 髋俯仰: 主动舵机(joint2) -->
+        <joint name="joint2" class="servo_joint" pos="0 0 0" axis="0 0 1" range="-1.2 0.52" actuatorfrcrange="-1.91 1.91" />
+        <geom type="mesh" rgba="0.10 0.45 0.85 1" mesh="Link2" contype="0" conaffinity="0" group="2" />
+        <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+        <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+        <geom type="mesh" name="Link2_hull" mesh="Link2_hull" contype="8" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+        <!-- 【曲柄 crank】: joint3=驱动曲柄, 转一圈带动整条四连杆; 调腿高/支撑的关键 -->
+        <body name="Link3" pos="-0.04467 0 -0.015" quat="-3.67321e-06 0 0 1">
+          <inertial pos="0.013886 0.0075765 -0.0036676" quat="-0.164014 0.72486 0.184884 0.643036" mass="0.0152052" diaginertia="6.12179e-06 6.04781e-06 8.05363e-07" />
+          <!-- 膝=曲柄驱动: 主动舵机(joint3) -->
+          <joint name="joint3" class="servo_joint" pos="0 0 0" axis="0 0 1" range="-0.14 3" actuatorfrcrange="-1.91 1.91" />
+          <geom type="mesh" rgba="0.95 0.55 0.10 1" mesh="Link3" contype="0" conaffinity="0" group="2" />
+          <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+          <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+          <geom type="mesh" name="Link3_hull" mesh="Link3_hull" contype="16" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+          <!-- 【连杆 coupler】: 四连杆中间过渡杆, 被动随动(bear688), 不触地 -->
+          <body name="Link4" pos="0.045647 0.024906 -0.016" quat="0.29351 0 0 -0.955956">
+            <inertial pos="0.0559857 -0.0139137 0.00158136" quat="0.0860637 0.700551 -0.0857509 0.703184" mass="0.0119298" diaginertia="2.31775e-05 2.27579e-05 5.86633e-07" />
+            <joint name="joint4" class="bear688" pos="0 0 0" axis="0 0 1" />
+            <geom type="mesh" rgba="0.60 0.25 0.80 1" mesh="Link4" contype="0" conaffinity="0" group="2" />
+            <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+            <geom type="mesh" name="Link4_hull" mesh="Link4_hull" contype="32" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+            <!-- 四连杆缝合点：连杆末端（坐标系4局部坐标 115.49 -28.7 8 mm） -->
+            <site name="leg1_link4_connect" pos="0.11549 -0.0287 0.008" size="0.003" rgba="1 1 1 0.6" type="sphere"/>
+          </body>
+        </body>
+        <!-- 【摇杆 rocker + 小腿/脚掌】: 四连杆输出端, 连着以下小腿+脚掌, 触地(contype=64) -->
+        <body name="Link5" pos="0.075 0 -0.015">
+          <inertial pos="0.0202892 -0.00370698 0.0129453" quat="0.0680812 0.68185 -0.110723 0.719852" mass="0.056273" diaginertia="9.26104e-05 8.93398e-05 7.079e-06" />
+          <joint name="joint5" class="bear6804" pos="0 0 0" axis="0 0 1" />
+          <geom type="mesh" rgba="0.00 0.70 0.60 1" mesh="Link5" contype="0" conaffinity="0" group="2" />
+          <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+          <geom type="mesh" name="Link5_hull" mesh="Link5_hull" contype="64" conaffinity="1" group="3" rgba="0.3 0.3 0.3 0.4" />
+          <!-- 四连杆缝合点：小腿上的连杆安装孔（坐标系5局部坐标 -53.62 16.14 -8 mm） -->
+          <site name="leg1_link5_connect" pos="-0.05362 0.01614 -0.008" size="0.003" rgba="1 1 1 0.6" type="sphere"/>
+          <site name="foot_rl" pos="0.12917 -0.04996 0.016" size="0.005" rgba="1 1 0 0.5" group="4"/>
+        </body>
+      </body>
+    </body>
+    <!-- 后右腿根/髋(abd), 与 Link1 镜像 [x=-0.16=后, y=+0.06=右] -->
+    <body name="Link6" pos="-0.16061 0.062302 -0.0015924" quat="0.499998 0.5 0.500002 0.5">
+      <inertial pos="0.00607228 -0.00717897 -0.0209238" quat="0.644511 0.699797 -0.23563 0.198413" mass="0.113508" diaginertia="3.75115e-05 3.52703e-05 2.44813e-05" />
+      <!-- abd 髋侧摆(后右): 主动舵机(joint6) -->
+      <joint name="joint6" class="servo_joint" pos="0 0 0" axis="0 0 1" range="-0.7 1.3" actuatorfrcrange="-1.91 1.91" />
+      <geom type="mesh" rgba="0.95 0.70 0.10 1" mesh="Link6" contype="0" conaffinity="0" group="2" />
+      <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+      <geom type="mesh" name="Link6_hull" mesh="Link6_hull" contype="4" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+      <!-- 后右大腿(hip), 与 Link2 镜像 -->
+      <body name="Link7" pos="0.029193 0.0026998 -0.02249" quat="0.500673 0.500675 -0.499326 -0.499325">
+        <inertial pos="-0.0208018 2.20254e-05 0.00235653" quat="-0.00238437 0.750456 -0.00238788 0.660912" mass="0.169369" diaginertia="0.000220786 0.000217943 3.16008e-05" />
+        <!-- hip 髋俯仰(后右): 主动舵机(joint7) -->
+        <joint name="joint7" class="servo_joint" pos="0 0 0" axis="0 0 1" range="-0.52 1.2" actuatorfrcrange="-1.91 1.91" />
+        <geom type="mesh" rgba="0.10 0.45 0.85 1" mesh="Link7" contype="0" conaffinity="0" group="2" />
+        <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+        <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+        <geom type="mesh" name="Link7_hull" mesh="Link7_hull" contype="8" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+        <!-- 后右【曲柄 crank】, 与 Link3 镜像 -->
+        <body name="Link8" pos="-0.04467 0 -0.0148" quat="-3.67321e-06 0 0 -1">
+          <inertial pos="0.013886 -0.0075765 -0.00366759" quat="0.164014 0.72486 -0.184884 0.643036" mass="0.0152052" diaginertia="6.12179e-06 6.04781e-06 8.05363e-07" />
+          <!-- 膝=曲柄(后右): 主动舵机(joint8) -->
+          <joint name="joint8" class="servo_joint" pos="0 0 0" axis="0 0 1" range="-3 0.14" actuatorfrcrange="-1.91 1.91" />
+          <geom type="mesh" rgba="0.95 0.55 0.10 1" mesh="Link8" contype="0" conaffinity="0" group="2" />
+          <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+          <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+          <geom type="mesh" name="Link8_hull" mesh="Link8_hull" contype="16" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+               <!-- Link9 坐标系修复(2026-08-21)：原 SolidWorks 导出歪斜
+               (quat 非镜像、axis 斜轴、mesh 躺倒)。
+               现按 Link4 精确 y 镜像映射：pos=(x,-y,z)、quat z 取反、
+               axis=(0,0,1)、mesh 重生成。世界系与 Link4 严格对称 -->
+          <!-- 后右【连杆 coupler】, 与 Link4 y镜像(已修复坐标) -->
+          <body name="Link9" pos="0.045647 -0.024906 -0.016" quat="0.29351 0 0 0.955956">
+            <inertial pos="0.0559857 0.0139137 0.00158136" quat="-0.0860637 0.700551 0.0857509 0.703184" mass="0.0119298" diaginertia="2.31775e-05 2.27579e-05 5.86633e-07" />
+            <joint name="joint9" class="bear688" pos="0 0 0" axis="0 0 1" />
+            <geom type="mesh" rgba="0.60 0.25 0.80 1" mesh="Link9" contype="0" conaffinity="0" group="2" />
+            <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+            <geom type="mesh" name="Link9_hull" mesh="Link9_hull" contype="32" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+            <!-- 四连杆缝合点：连杆末端（坐标系9局部坐标 115.49 28.7 8 mm） -->
+            <site name="leg2_link9_connect" pos="0.11549 0.0287 0.008" size="0.003" rgba="1 1 1 0.6" type="sphere"/>
+          </body>
+        </body>
+        <!-- 后右【摇杆+脚掌】, 与 Link5 镜像 -->
+        <body name="Link10" pos="0.075 0 -0.0148">
+          <inertial pos="0.020289 0.00370692 0.0129453" quat="-0.068081 0.681849 0.110723 0.719852" mass="0.0562728" diaginertia="9.26099e-05 8.93392e-05 7.07898e-06" />
+          <joint name="joint10" class="bear6804" pos="0 0 0" axis="0 0 1" />
+          <geom type="mesh" rgba="0.00 0.70 0.60 1" mesh="Link10" contype="0" conaffinity="0" group="2" />
+          <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+          <geom type="mesh" name="Link10_hull" mesh="Link10_hull" contype="64" conaffinity="1" group="3" rgba="0.3 0.3 0.3 0.4" />
+          <!-- 四连杆缝合点：小腿上的连杆安装孔（坐标系10局部坐标 -53.62 -16.14 -8 mm） -->
+          <site name="leg2_link10_connect" pos="-0.05362 -0.01614 -0.008" size="0.003" rgba="1 1 1 0.6" type="sphere"/>
+          <site name="foot_rr" pos="0.12917 0.04996 0.016" size="0.005" rgba="1 1 0 0.5" group="4"/>
+        </body>
+      </body>
+    </body>
+    <!-- 前左腿根/髋(abd) [x=+0.17=前, y=-0.06=左] -->
+    <body name="Link11" pos="0.16939 -0.057655 0.023188" quat="0.499998 -0.5 0.500002 -0.5">
+      <inertial pos="0.00601397 0.00722084 -0.0209237" quat="0.699349 0.644887 -0.197191 0.236955" mass="0.113508" diaginertia="3.75114e-05 3.52704e-05 2.44814e-05" />
+      <joint name="joint11" class="servo_joint" pos="0 0 0" axis="0 0 1" range="-0.55 0.55" actuatorfrcrange="-1.91 1.91" />
+      <geom type="mesh" rgba="0.95 0.70 0.10 1" mesh="Link11" contype="0" conaffinity="0" group="2" />
+      <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+      <geom type="mesh" name="Link11_hull" mesh="Link11_hull" contype="4" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+      <!-- 前左大腿(hip) -->
+      <body name="Link12" pos="0.029003 -0.0024677 -0.02249" quat="0.499723 -0.499725 -0.500277 0.500275">
+        <inertial pos="-0.0220859 2.83939e-05 0.00225331" quat="-0.00175291 0.750757 -0.00109838 0.660575" mass="0.167964" diaginertia="0.000210356 0.000207594 3.14981e-05" />
+        <joint name="joint12" class="servo_joint" pos="0 0 0" axis="0 0 1" range="-1.2 0.5" actuatorfrcrange="-1.91 1.91" />
+        <geom type="mesh" rgba="0.10 0.45 0.85 1" mesh="Link12" contype="0" conaffinity="0" group="2" />
+        <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+        <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+        <geom type="mesh" name="Link12_hull" mesh="Link12_hull" contype="8" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+        <!-- 前左【曲柄 crank】 -->
+        <body name="Link13" pos="-0.04467 0 -0.0152" quat="-3.67321e-06 0 0 1">
+          <inertial pos="0.014054 0.0121209 -0.00380288" quat="-0.232209 0.698764 0.259703 0.62479" mass="0.0169338" diaginertia="7.72942e-06 7.6435e-06 8.56709e-07" />
+          <joint name="joint13" class="servo_joint" pos="0 0 0" axis="0 0 1" range="-0.14 3" actuatorfrcrange="-1.91 1.91" />
+          <geom type="mesh" rgba="0.95 0.55 0.10 1" mesh="Link13" contype="0" conaffinity="0" group="2" />
+          <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+          <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+          <geom type="mesh" name="Link13_hull" mesh="Link13_hull" contype="16" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+          <!-- 前左【连杆 coupler】 -->
+          <body name="Link14" pos="0.0431642 0.037227 -0.0158" quat="0.389193 0 0 -0.921156">
+            <inertial pos="0.052716 -0.01583 0.0016014" quat="0.102974 0.698183 -0.102569 0.701011" mass="0.011443" diaginertia="2.08011e-05 2.04004e-05 5.63303e-07" />
+            <joint name="joint14" class="bear688" pos="0 0 0" axis="0 0 1" />
+            <geom type="mesh" rgba="0.60 0.25 0.80 1" mesh="Link14" contype="0" conaffinity="0" group="2" />
+            <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+            <geom type="mesh" name="Link14_hull" mesh="Link14_hull" contype="32" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+            <!-- 四连杆缝合点：连杆末端（坐标系14局部坐标 109.18 -32.78 8 mm） -->
+            <site name="leg3_link14_connect" pos="0.10918 -0.03278 0.008" size="0.003" rgba="1 1 1 0.6" type="sphere"/>
+          </body>
+        </body>
+        <!-- 前左【摇杆+脚掌】 -->
+        <body name="Link15" pos="0.07 0 -0.015">
+          <inertial pos="0.0149087 -0.00243015 0.0126809" quat="0.0685734 0.680641 -0.109392 0.721151" mass="0.0550055" diaginertia="7.23425e-05 6.95024e-05 6.63756e-06" />
+          <joint name="joint15" class="bear6804" pos="0 0 0" axis="0 0 1" />
+          <geom type="mesh" rgba="0.00 0.70 0.60 1" mesh="Link15" contype="0" conaffinity="0" group="2" />
+          <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+          <geom type="mesh" name="Link15_hull" mesh="Link15_hull" contype="64" conaffinity="1" group="3" rgba="0.3 0.3 0.3 0.4" />
+          <!-- 四连杆缝合点：小腿上的连杆安装孔（坐标系15局部坐标 -58.22 18.21 -8 mm） -->
+          <site name="leg3_link15_connect" pos="-0.05822 0.01821 -0.008" size="0.003" rgba="1 1 1 0.6" type="sphere"/>
+          <site name="foot_fl" pos="0.11578 -0.04504 0.0162" size="0.005" rgba="1 1 0 0.5" group="4"/>
+        </body>
+      </body>
+    </body>
+    <!-- 前右腿根/髋(abd) [x=+0.17=前, y=+0.06=右] -->
+    <body name="Link16" pos="0.16939 0.057302 0.023188" quat="0.499998 0.5 0.500002 0.5">
+      <inertial pos="0.00601397 -0.00722084 -0.0209237" quat="0.644887 0.699349 -0.236955 0.197191" mass="0.113508" diaginertia="3.75114e-05 3.52704e-05 2.44814e-05" />
+      <joint name="joint16" class="servo_joint" pos="0 0 0" axis="0 0 1" range="-0.55 0.55" actuatorfrcrange="-1.91 1.91" />
+      <geom type="mesh" rgba="0.95 0.70 0.10 1" mesh="Link16" contype="0" conaffinity="0" group="2" />
+      <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+      <geom type="mesh" name="Link16_hull" mesh="Link16_hull" contype="4" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+      <!-- 前右大腿(hip) -->
+      <body name="Link17" pos="0.029197 0.0026509 -0.02249" quat="0.500273 0.500275 -0.499727 -0.499725">
+        <inertial pos="-0.0220859 2.83939e-05 0.00245331" quat="-0.00175297 0.750757 -0.00109841 0.660575" mass="0.167964" diaginertia="0.000210356 0.000207594 3.14981e-05" />
+        <joint name="joint17" class="servo_joint" pos="0 0 0" axis="0 0 1" range="-0.5 1.2" actuatorfrcrange="-1.91 1.91" />
+        <geom type="mesh" rgba="0.10 0.45 0.85 1" mesh="Link17" contype="0" conaffinity="0" group="2" />
+        <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+        <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+        <geom type="mesh" name="Link17_hull" mesh="Link17_hull" contype="8" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+        <!-- 前右【曲柄 crank】 -->
+        <body name="Link18" pos="-0.04467 0 -0.015" quat="-3.67321e-06 0 0 1">
+          <inertial pos="0.014054 -0.0121209 -0.00380288" quat="0.232209 0.698764 -0.259703 0.62479" mass="0.0169338" diaginertia="7.72942e-06 7.6435e-06 8.56709e-07" />
+          <joint name="joint18" class="servo_joint" pos="0 0 0" axis="0 0 1" range="-3 0.14" actuatorfrcrange="-1.91 1.91" />
+          <geom type="mesh" rgba="0.95 0.55 0.10 1" mesh="Link18" contype="0" conaffinity="0" group="2" />
+          <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+          <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+          <geom type="mesh" name="Link18_hull" mesh="Link18_hull" contype="16" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+          <!-- 前右【连杆 coupler】 -->
+          <body name="Link19" pos="0.0431642 -0.037227 -0.0158" quat="0.389193 0 0 0.921156">
+            <inertial pos="0.0527165 0.0158282 0.0016014" quat="-0.102976 0.698186 0.10255 0.701011" mass="0.011443" diaginertia="2.08011e-05 2.04004e-05 5.63303e-07" />
+            <joint name="joint19" class="bear688" pos="0 0 0" axis="0 0 1" />
+            <geom type="mesh" rgba="0.60 0.25 0.80 1" mesh="Link19" contype="0" conaffinity="0" group="2" />
+            <!-- floorfix 2026-08-27: MJX 静态按 nefc^2 分配求解器显存, 21 个零件全碰地时 nefc=920, 8GB 卡放不下; 只保留 base+脚掌碰地 (官方四足模型同做法) -->
+            <geom type="mesh" name="Link19_hull" mesh="Link19_hull" contype="32" conaffinity="0" group="3" rgba="0.3 0.3 0.3 0.4" />
+            <!-- 四连杆缝合点：连杆末端（坐标系19局部坐标 109.18 32.78 8 mm） -->
+            <site name="leg4_link19_connect" pos="0.10918 0.03278 0.008" size="0.003" rgba="1 1 1 0.6" type="sphere"/>
+          </body>
+        </body>
+        <!-- 前右【摇杆+脚掌】 -->
+        <body name="Link20" pos="0.07 0 -0.0148">
+          <inertial pos="0.0149086 0.00243009 0.0124835" quat="-0.0685731 0.68064 0.109392 0.721152" mass="0.0550054" diaginertia="7.23421e-05 6.9502e-05 6.63754e-06" />
+          <joint name="joint20" class="bear6804" pos="0 0 0" axis="0 0 1" />
+          <geom type="mesh" rgba="0.00 0.70 0.60 1" mesh="Link20" contype="0" conaffinity="0" group="2" />
+          <!-- noselfcoll 2026-08-27: 自碰撞全关(官方四足模型做法), 只留 base+脚掌 与地面碰撞; MJX 求解器显存按 nefc^2 x 环境数 分配, 8GB 卡需要 nefc 尽量小 -->
+          <geom type="mesh" name="Link20_hull" mesh="Link20_hull" contype="64" conaffinity="1" group="3" rgba="0.3 0.3 0.3 0.4" />
+          <!-- 四连杆缝合点：小腿上的连杆安装孔（坐标系20局部坐标 -58.22 -18.21 -8 mm） -->
+          <site name="leg4_link20_connect" pos="-0.05822 -0.01821 -0.008" size="0.003" rgba="1 1 1 0.6" type="sphere"/>
+          <site name="foot_fr" pos="0.11578 0.04504 0.0162" size="0.005" rgba="1 1 0 0.5" group="4"/>
+        </body>
+      </body>
+    </body>
+    </body>
+  </worldbody>
+
+<actuator>
+    <motor joint="joint1" ctrlrange="0 0" forcerange="0 0"/>
+    <position class="servo" name="servo_joint1" joint="joint1"  ctrlrange="-1.3 0.7"/>
+    <position class="servo" name="servo_joint2" joint="joint2"  ctrlrange="-1.2 0.52"/>
+    <position class="servo" name="servo_joint3" joint="joint3"  ctrlrange="-0.14 3"/>
+    <position class="servo" name="servo_joint6" joint="joint6"  ctrlrange="-0.7 1.3"/>
+    <position class="servo" name="servo_joint7" joint="joint7"  ctrlrange="-0.52 1.2"/>
+    <position class="servo" name="servo_joint8" joint="joint8"  ctrlrange="-3 0.14"/>
+    <position class="servo" name="servo_joint11" joint="joint11" ctrlrange="-0.55 0.55"/>
+    <position class="servo" name="servo_joint12" joint="joint12" ctrlrange="-1.2 0.5"/>
+    <position class="servo" name="servo_joint13" joint="joint13" ctrlrange="-0.14 3"/>
+    <position class="servo" name="servo_joint16" joint="joint16" ctrlrange="-0.55 0.55"/>
+    <position class="servo" name="servo_joint17" joint="joint17" ctrlrange="-0.5 1.2"/>
+    <position class="servo" name="servo_joint18" joint="joint18" ctrlrange="-3 0.14"/>
+  </actuator>
+       <!-- 传感器组(2026-08-21):
+       real_* = 真机对应(IMU901/TOF/相机/舵机编码器)
+       virt_* = 学习调试用(真机由推算/估计获得)
+       命名前缀供 DR/部署按组开关; env 的 obs 改读 sensordata -->
+  <sensor>
+    <!-- 真实: IMU901(躯干 imu_mount) -->
+    <framequat name="real_imu_quat" objtype="site" objname="imu_mount"/>
+    <gyro name="real_imu_gyro" site="imu_mount"/>
+    <accelerometer name="real_imu_acc" site="imu_mount"/>
+    <magnetometer name="real_imu_mag" site="imu_mount"/>
+    <!-- 真实: VL53L0X 前方测距(tof_mount, 朝 +x) -->
+    <!-- norays 2026-08-27: MJX 的 rangefinder 每步对所有网格三角形做射线求交,
+         视觉网格~82万三角形 -> 每环境约 35MB 显存, 8GB 卡 64 环境即 OOM。
+         训练 obs 未用测距值, 真机由实际传感器提供 -> 训练模型禁用(需要时恢复本行, 或先给视觉网格减面): -->
+        <!-- rangefinder name="real_tof_dist" site="tof_mount" cutoff="2.0" -->
+    <!-- 超声波测距(HC-SR04, 手里已有硬件; 量程 4m, 精度 ~1cm, 更新率 ~20Hz(env 层限)) -->
+    <!-- norays 2026-08-27: MJX 的 rangefinder 每步对所有网格三角形做射线求交,
+         视觉网格~82万三角形 -> 每环境约 35MB 显存, 8GB 卡 64 环境即 OOM。
+         训练 obs 未用测距值, 真机由实际传感器提供 -> 训练模型禁用(需要时恢复本行, 或先给视觉网格减面): -->
+        <!-- rangefinder name="real_ultrasonic_dist" site="ultrasonic_mount" cutoff="4.0" -->
+    <!-- 真实: 12 舵机磁编码器(关节角/角速度) -->
+    <jointpos name="real_jointpos_1" joint="joint1"/>
+    <jointpos name="real_jointpos_2" joint="joint2"/>
+    <jointpos name="real_jointpos_3" joint="joint3"/>
+    <jointpos name="real_jointpos_6" joint="joint6"/>
+    <jointpos name="real_jointpos_7" joint="joint7"/>
+    <jointpos name="real_jointpos_8" joint="joint8"/>
+    <jointpos name="real_jointpos_11" joint="joint11"/>
+    <jointpos name="real_jointpos_12" joint="joint12"/>
+    <jointpos name="real_jointpos_13" joint="joint13"/>
+    <jointpos name="real_jointpos_16" joint="joint16"/>
+    <jointpos name="real_jointpos_17" joint="joint17"/>
+    <jointpos name="real_jointpos_18" joint="joint18"/>
+    <jointvel name="real_jointvel_1" joint="joint1"/>
+    <jointvel name="real_jointvel_2" joint="joint2"/>
+    <jointvel name="real_jointvel_3" joint="joint3"/>
+    <jointvel name="real_jointvel_6" joint="joint6"/>
+    <jointvel name="real_jointvel_7" joint="joint7"/>
+    <jointvel name="real_jointvel_8" joint="joint8"/>
+    <jointvel name="real_jointvel_11" joint="joint11"/>
+    <jointvel name="real_jointvel_12" joint="joint12"/>
+    <jointvel name="real_jointvel_13" joint="joint13"/>
+    <jointvel name="real_jointvel_16" joint="joint16"/>
+    <jointvel name="real_jointvel_17" joint="joint17"/>
+    <jointvel name="real_jointvel_18" joint="joint18"/>
+    <!-- 真实: 12 舵机力矩(电流 x Kt, 真机由 0x45 电流估算) -->
+    <actuatorfrc name="real_jointtorque_joint1" actuator="servo_joint1"/>
+    <actuatorfrc name="real_jointtorque_joint2" actuator="servo_joint2"/>
+    <actuatorfrc name="real_jointtorque_joint3" actuator="servo_joint3"/>
+    <actuatorfrc name="real_jointtorque_joint6" actuator="servo_joint6"/>
+    <actuatorfrc name="real_jointtorque_joint7" actuator="servo_joint7"/>
+    <actuatorfrc name="real_jointtorque_joint8" actuator="servo_joint8"/>
+    <actuatorfrc name="real_jointtorque_joint11" actuator="servo_joint11"/>
+    <actuatorfrc name="real_jointtorque_joint12" actuator="servo_joint12"/>
+    <actuatorfrc name="real_jointtorque_joint13" actuator="servo_joint13"/>
+    <actuatorfrc name="real_jointtorque_joint16" actuator="servo_joint16"/>
+    <actuatorfrc name="real_jointtorque_joint17" actuator="servo_joint17"/>
+    <actuatorfrc name="real_jointtorque_joint18" actuator="servo_joint18"/>
+    <!-- 虚拟: 基座线速度(真机需估计器) -->
+    <!-- sensorfix 2026-08-29: 原先只有 framelinvel 一个, 它返回【世界系】速度,
+         却被 get_local_linvel() 当机体系喂进观测和奖励 —— 观测是世界系、指令是机体系,
+         朝向因此完全不受约束(侧身走)。现按官方 Go1 的做法补齐两种、各归其位:
+           velocimeter -> local  (机体系)  供观测与 tracking 奖励使用
+           framelinvel -> global (世界系)  仅作记录
+         实测依据: 机身转到 yaw=90° 后给世界系速度 (1,0,0), framelinvel 仍读 (1,0,0)
+         而非机体系的 (0,-1,0), 见 _verify_orient.py。 -->
+    <velocimeter site="imu_mount" name="local_linvel"/>
+    <framelinvel name="virt_base_linvel" objtype="site" objname="imu_mount"/>
+    <!-- 虚拟: 8 被动关节角(真机由 polycoef 推算) -->
+    <jointpos name="virt_passive_4" joint="joint4"/>
+    <jointpos name="virt_passive_5" joint="joint5"/>
+    <jointpos name="virt_passive_9" joint="joint9"/>
+    <jointpos name="virt_passive_10" joint="joint10"/>
+    <jointpos name="virt_passive_14" joint="joint14"/>
+    <jointpos name="virt_passive_15" joint="joint15"/>
+    <jointpos name="virt_passive_19" joint="joint19"/>
+    <jointpos name="virt_passive_20" joint="joint20"/>
+  </sensor>
+  <contact>
+    <exclude body1="Link5" body2="Link2" />
+    <exclude body1="Link10" body2="Link7" />
+    <exclude body1="Link15" body2="Link12" />
+    <exclude body1="Link20" body2="Link17" />
+  </contact>
+</mujoco>

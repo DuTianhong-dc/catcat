@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<segmentData xmlns='http://www.solidworks.com/segmentData'>
+    <segment ID='3'>
+        <properties>
+            <Name value='&#36830;&#25509;&#28857;1@&#36527;&#24178;&#27169;&#22359;-2@&#26426;&#26800;&#29483;3.0/Cable_1-&#36527;&#24178;&#27169;&#22359;-1@&#36527;&#24178;&#27169;&#22359;/5400&#30005;&#27744;-1@Cable_1-&#36527;&#24178;&#27169;&#22359;:&#36830;&#25509;&#28857;2@XT60&#27597;&#22836;-1@Cable_2-&#26426;&#26800;&#29483;3.0'/>
+            <FromCompID value='0'/>
+            <ToCompID value='0'/>
+            <FromConnectionPoint value='2'/>
+            <ToConnectionPoint value='1'/>
+            <FromComponentRef value=''/>
+            <ToComponentRef value=''/>
+            <Length value='0.092642'/>
+            <AdditionalLength value='0.096642'/>
+            <FromLocation value='0.066385,-0.075114,0.235198'/>
+            <ToLocation value='0.063815,-0.011908,0.233442'/>
+            <MaxDiameter value='0.000000'/>
+            <Diameter value='0.002000'/>
+            <Comment value='No Comments'/>
+            <Coverings value=''/>
+        </properties>
+    </segment>
+    <segment ID='4'>
+        <properties>
+            <Name value='&#36830;&#25509;&#28857;1@XT60&#27597;&#22836;-1@Cable_2-&#26426;&#26800;&#29483;3.0:&#36830;&#25509;&#28857;3@&#36527;&#24178;&#27169;&#22359;-2@&#26426;&#26800;&#29483;3.0/Cable_1-&#36527;&#24178;&#27169;&#22359;-1@&#36527;&#24178;&#27169;&#22359;/5400&#30005;&#27744;-1@Cable_1-&#36527;&#24178;&#27169;&#22359;'/>
+            <FromCompID value='0'/>
+            <ToCompID value='0'/>
+            <FromConnectionPoint value='1'/>
+            <ToConnectionPoint value='3'/>
+            <FromComponentRef value=''/>
+            <ToComponentRef value=''/>
+            <Length value='0.081522'/>
+            <AdditionalLength value='0.085522'/>
+            <FromLocation value='0.066385,-0.067914,0.235198'/>
+            <ToLocation value='0.063815,-0.011908,0.230154'/>
+            <MaxDiameter value='0.000000'/>
+            <Diameter value='0.002000'/>
+            <Comment value='No Comments'/>
+            <Coverings value=''/>
+        </properties>
+    </segment>
+</segmentData>

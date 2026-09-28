@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="机械猫3.3仿真1.1.SLDASM">
+  <link
+    name="link5">
+    <inertial>
+      <origin
+        xyz="0.0158746642815336 -0.00253106565246303 0.0126662508807684"
+        rpy="0 0 0" />
+      <mass
+        value="0.054427305806412" />
+      <inertia
+        ixx="1.0290649290915E-05"
+        ixy="1.43519024772787E-05"
+        ixz="-3.20858752999666E-06"
+        iyy="6.47023962174502E-05"
+        iyz="6.09609512979188E-07"
+        izz="7.08569318055505E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://机械猫3.3仿真1.1.SLDASM/meshes/link5.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://机械猫3.3仿真1.1.SLDASM/meshes/link5.STL" />
+      </geometry>
+    </collision>
+  </link>
+</robot>

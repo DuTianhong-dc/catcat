@@ -1,0 +1,156 @@
+======================================================================
+cat3.3 全部模型参数（从 cat3.3_world.xml 实际加载）
+======================================================================
+
+[① 物理参数 option]
+  timestep    = 0.002 s (2.0 ms)
+  gravity     = [ 0.    0.   -9.81]
+  integrator  = mjINT_IMPLICITFAST
+  cone        = mjCONE_PYRAMIDAL
+  iterations  = 100
+
+[② 刚体 body 全部参数]
+  body[0] worldbody
+  base_link  | mass=8.52783 kg | pos=[0. 0. 0.] | quat=[1. 0. 0. 0.] | diaginertia=[0.09152   0.0845658 0.0123394] | 父体=world
+  Link1      | mass=0.11351 kg | pos=[-0.16061 -0.06266 -0.00181] | quat=[ 0.5 -0.5  0.5 -0.5] | diaginertia=[3.75e-05 3.53e-05 2.45e-05] | 父体=base_link
+  Link2      | mass=0.16937 kg | pos=[ 0.02901 -0.00242 -0.02249] | quat=[ 0.49932 -0.49932 -0.50068  0.50067] | diaginertia=[2.208e-04 2.179e-04 3.160e-05] | 父体=Link1
+  Link3      | mass=0.01521 kg | pos=[-0.04467  0.      -0.015  ] | quat=[-0.  0.  0.  1.] | diaginertia=[6.1e-06 6.0e-06 8.0e-07] | 父体=Link2
+  Link4      | mass=0.01193 kg | pos=[ 0.04565  0.02491 -0.016  ] | quat=[ 0.29351  0.       0.      -0.95596] | diaginertia=[2.32e-05 2.28e-05 6.00e-07] | 父体=Link3
+  Link5      | mass=0.05627 kg | pos=[ 0.075  0.    -0.015] | quat=[1. 0. 0. 0.] | diaginertia=[9.26e-05 8.93e-05 7.10e-06] | 父体=Link2
+  Link6      | mass=0.11351 kg | pos=[-0.16061  0.0623  -0.00159] | quat=[0.5 0.5 0.5 0.5] | diaginertia=[3.75e-05 3.53e-05 2.45e-05] | 父体=base_link
+  Link7      | mass=0.16937 kg | pos=[ 0.02919  0.0027  -0.02249] | quat=[ 0.50067  0.50067 -0.49933 -0.49932] | diaginertia=[2.208e-04 2.179e-04 3.160e-05] | 父体=Link6
+  Link8      | mass=0.01521 kg | pos=[-0.04467  0.      -0.0148 ] | quat=[-0.  0.  0. -1.] | diaginertia=[6.1e-06 6.0e-06 8.0e-07] | 父体=Link7
+  Link9      | mass=0.01193 kg | pos=[ 0.04565 -0.02491 -0.016  ] | quat=[0.29351 0.      0.      0.95596] | diaginertia=[2.32e-05 2.28e-05 6.00e-07] | 父体=Link8  (2026-08-21 坐标修复: 原 quat 非镜像已改为 Link4 y 镜像)
+  Link10     | mass=0.05627 kg | pos=[ 0.075   0.     -0.0148] | quat=[1. 0. 0. 0.] | diaginertia=[9.26e-05 8.93e-05 7.10e-06] | 父体=Link7
+  Link11     | mass=0.11351 kg | pos=[ 0.16939 -0.05766  0.02319] | quat=[ 0.5 -0.5  0.5 -0.5] | diaginertia=[3.75e-05 3.53e-05 2.45e-05] | 父体=base_link
+  Link12     | mass=0.16796 kg | pos=[ 0.029   -0.00247 -0.02249] | quat=[ 0.49972 -0.49972 -0.50028  0.50027] | diaginertia=[2.104e-04 2.076e-04 3.150e-05] | 父体=Link11
+  Link13     | mass=0.01693 kg | pos=[-0.04467  0.      -0.0152 ] | quat=[-0.  0.  0.  1.] | diaginertia=[7.7e-06 7.6e-06 9.0e-07] | 父体=Link12
+  Link14     | mass=0.01144 kg | pos=[ 0.04316  0.03723 -0.0158 ] | quat=[ 0.38919  0.       0.      -0.92116] | diaginertia=[2.08e-05 2.04e-05 6.00e-07] | 父体=Link13
+  Link15     | mass=0.05501 kg | pos=[ 0.07   0.    -0.015] | quat=[1. 0. 0. 0.] | diaginertia=[7.23e-05 6.95e-05 6.60e-06] | 父体=Link12
+  Link16     | mass=0.11351 kg | pos=[0.16939 0.0573  0.02319] | quat=[0.5 0.5 0.5 0.5] | diaginertia=[3.75e-05 3.53e-05 2.45e-05] | 父体=base_link
+  Link17     | mass=0.16796 kg | pos=[ 0.0292   0.00265 -0.02249] | quat=[ 0.50027  0.50027 -0.49973 -0.49972] | diaginertia=[2.104e-04 2.076e-04 3.150e-05] | 父体=Link16
+  Link18     | mass=0.01693 kg | pos=[-0.04467  0.      -0.015  ] | quat=[-0.  0.  0.  1.] | diaginertia=[7.7e-06 7.6e-06 9.0e-07] | 父体=Link17
+  Link19     | mass=0.01144 kg | pos=[ 0.04316 -0.03723 -0.0158 ] | quat=[0.38919 0.      0.      0.92116] | diaginertia=[2.08e-05 2.04e-05 6.00e-07] | 父体=Link18
+  Link20     | mass=0.05501 kg | pos=[ 0.07    0.     -0.0148] | quat=[1. 0. 0. 0.] | diaginertia=[7.23e-05 6.95e-05 6.60e-06] | 父体=Link17
+  ──────────────────────────────
+  总质量 = 9.9901 kg
+
+[③ 关节 joint 全部参数]
+             type=free (躯干浮动基座)
+  joint1    | 所在body=Link1   | axis=[0. 0. 1.] | range=[-1.3000, 0.7000] rad (-74.5°~40.1°)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=7 dofadr=6
+            | 等效惯量 M[dof,dof] = 0.0012756 kg·m²
+  joint2    | 所在body=Link2   | axis=[0. 0. 1.] | range=[-1.2000, 0.5200] rad (-68.8°~29.8°)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=8 dofadr=7
+            | 等效惯量 M[dof,dof] = 0.0009933 kg·m²
+  joint3    | 所在body=Link3   | axis=[0. 0. 1.] | range=无(全回转)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=9 dofadr=8
+            | 等效惯量 M[dof,dof] = 0.0000342 kg·m²
+  joint4    | 所在body=Link4   | axis=[0. 0. 1.] | range=无(全回转)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=10 dofadr=9
+            | 等效惯量 M[dof,dof] = 0.0000629 kg·m²
+  joint5    | 所在body=Link5   | axis=[0. 0. 1.] | range=无(全回转)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=11 dofadr=10
+            | 等效惯量 M[dof,dof] = 0.0001164 kg·m²
+  joint6    | 所在body=Link6   | axis=[0. 0. 1.] | range=[-0.7000, 1.3000] rad (-40.1°~74.5°)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=12 dofadr=11
+            | 等效惯量 M[dof,dof] = 0.0012756 kg·m²
+  joint7    | 所在body=Link7   | axis=[0. 0. 1.] | range=[-0.5200, 1.2000] rad (-29.8°~68.8°)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=13 dofadr=12
+            | 等效惯量 M[dof,dof] = 0.0009933 kg·m²
+  joint8    | 所在body=Link8   | axis=[0. 0. 1.] | range=[-1.0000, 1.0000] rad (-57.3°~57.3°)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=14 dofadr=13
+            | 等效惯量 M[dof,dof] = 0.0000342 kg·m²
+  joint9    | 所在body=Link9   | axis=[0. 0. 1.] | range=无(全回转)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=15 dofadr=14
+            | 等效惯量 M[dof,dof] = 0.0000629 kg·m²  (2026-08-21 坐标修复: 原 axis=[0 0.9942 -0.1077] 斜轴已改)
+  joint10   | 所在body=Link10  | axis=[0. 0. 1.] | range=无(全回转)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=16 dofadr=15
+            | 等效惯量 M[dof,dof] = 0.0001164 kg·m²
+  joint11   | 所在body=Link11  | axis=[0. 0. 1.] | range=[-0.5500, 0.5500] rad (-31.5°~31.5°)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=17 dofadr=16
+            | 等效惯量 M[dof,dof] = 0.0011507 kg·m²
+  joint12   | 所在body=Link12  | axis=[0. 0. 1.] | range=[-1.2000, 0.5000] rad (-68.8°~28.6°)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=18 dofadr=17
+            | 等效惯量 M[dof,dof] = 0.0008671 kg·m²
+  joint13   | 所在body=Link13  | axis=[0. 0. 1.] | range=[-1.0000, 1.0000] rad (-57.3°~57.3°)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=19 dofadr=18
+            | 等效惯量 M[dof,dof] = 0.0000358 kg·m²
+  joint14   | 所在body=Link14  | axis=[0. 0. 1.] | range=无(全回转)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=20 dofadr=19
+            | 等效惯量 M[dof,dof] = 0.0000555 kg·m²
+  joint15   | 所在body=Link15  | axis=[0. 0. 1.] | range=无(全回转)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=21 dofadr=20
+            | 等效惯量 M[dof,dof] = 0.0000847 kg·m²
+  joint16   | 所在body=Link16  | axis=[0. 0. 1.] | range=[-0.5500, 0.5500] rad (-31.5°~31.5°)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=22 dofadr=21
+            | 等效惯量 M[dof,dof] = 0.0011517 kg·m²
+  joint17   | 所在body=Link17  | axis=[0. 0. 1.] | range=[-0.5000, 1.2000] rad (-28.6°~68.8°)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=23 dofadr=22
+            | 等效惯量 M[dof,dof] = 0.0008671 kg·m²
+  joint18   | 所在body=Link18  | axis=[0. 0. 1.] | range=[-1.0000, 1.0000] rad (-57.3°~57.3°)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=24 dofadr=23
+            | 等效惯量 M[dof,dof] = 0.0000358 kg·m²
+  joint19   | 所在body=Link19  | axis=[0. 0. 1.] | range=无(全回转)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=25 dofadr=24
+            | 等效惯量 M[dof,dof] = 0.0000555 kg·m²
+  joint20   | 所在body=Link20  | axis=[0. 0. 1.] | range=无(全回转)
+            | armature=0.00000 | damping=0.00000 | stiffness=0.00000 | qposadr=26 dofadr=25
+            | 等效惯量 M[dof,dof] = 0.0000847 kg·m²
+
+[④ 几何体 geom]
+  floor                  | type=mjGEOM_PLANE | mesh=-                    | body=world
+                         | type=mjGEOM_MESH | mesh=base_link_decimated  | body=base_link
+                         | type=mjGEOM_MESH | mesh=Link1                | body=Link1
+                         | type=mjGEOM_MESH | mesh=Link2                | body=Link2
+                         | type=mjGEOM_MESH | mesh=Link3                | body=Link3
+                         | type=mjGEOM_MESH | mesh=Link4                | body=Link4
+                         | type=mjGEOM_MESH | mesh=Link5                | body=Link5
+                         | type=mjGEOM_MESH | mesh=Link6                | body=Link6
+                         | type=mjGEOM_MESH | mesh=Link7                | body=Link7
+                         | type=mjGEOM_MESH | mesh=Link8                | body=Link8
+                         | type=mjGEOM_MESH | mesh=Link9                | body=Link9
+                         | type=mjGEOM_MESH | mesh=Link10               | body=Link10
+                         | type=mjGEOM_MESH | mesh=Link11               | body=Link11
+                         | type=mjGEOM_MESH | mesh=Link12               | body=Link12
+                         | type=mjGEOM_MESH | mesh=Link13               | body=Link13
+                         | type=mjGEOM_MESH | mesh=Link14               | body=Link14
+                         | type=mjGEOM_MESH | mesh=Link15               | body=Link15
+                         | type=mjGEOM_MESH | mesh=Link16               | body=Link16
+                         | type=mjGEOM_MESH | mesh=Link17               | body=Link17
+                         | type=mjGEOM_MESH | mesh=Link18               | body=Link18
+                         | type=mjGEOM_MESH | mesh=Link19               | body=Link19
+                         | type=mjGEOM_MESH | mesh=Link20               | body=Link20
+
+[⑤ site 标记点]
+  leg1_link4_connect       | pos=[ 0.11549 -0.0287   0.008  ] | size=[0.003 0.005 0.005] | body=Link4
+  leg1_link5_connect       | pos=[-0.05362  0.01614 -0.008  ] | size=[0.003 0.005 0.005] | body=Link5
+
+[⑥ 执行器 actuator]
+  actuator[ 0] motor     | joint=joint1  | ctrlrange=[0. 0.] | forcerange=[0. 0.] (占位)
+  actuator[ 1] position | joint=joint1  | kp=  100.0 | kv=   30.0 | ctrlrange=[-1.3  0.7] | forcerange=[-1.91  1.91]
+  actuator[ 2] position | joint=joint2  | kp=  100.0 | kv=   30.0 | ctrlrange=[-1.2   0.52] | forcerange=[-1.91  1.91]
+  actuator[ 3] position | joint=joint3  | kp=  100.0 | kv=   30.0 | ctrlrange=[-3.14  3.14] | forcerange=[-1.91  1.91]
+  actuator[ 4] position | joint=joint6  | kp=  100.0 | kv=   30.0 | ctrlrange=[-0.7  1.3] | forcerange=[-1.91  1.91]
+  actuator[ 5] position | joint=joint7  | kp=  100.0 | kv=   30.0 | ctrlrange=[-0.52  1.2 ] | forcerange=[-1.91  1.91]
+  actuator[ 6] position | joint=joint8  | kp=  100.0 | kv=   30.0 | ctrlrange=[-1.  1.] | forcerange=[-1.91  1.91]
+  actuator[ 7] position | joint=joint11 | kp=  100.0 | kv=   30.0 | ctrlrange=[-0.55  0.55] | forcerange=[-1.91  1.91]
+  actuator[ 8] position | joint=joint12 | kp=  100.0 | kv=   30.0 | ctrlrange=[-1.2  0.5] | forcerange=[-1.91  1.91]
+  actuator[ 9] position | joint=joint13 | kp=  100.0 | kv=   30.0 | ctrlrange=[-1.  1.] | forcerange=[-1.91  1.91]
+  actuator[10] position | joint=joint16 | kp=  100.0 | kv=   30.0 | ctrlrange=[-0.55  0.55] | forcerange=[-1.91  1.91]
+  actuator[11] position | joint=joint17 | kp=  100.0 | kv=   30.0 | ctrlrange=[-0.5  1.2] | forcerange=[-1.91  1.91]
+  actuator[12] position | joint=joint18 | kp=  100.0 | kv=   30.0 | ctrlrange=[-1.  1.] | forcerange=[-1.91  1.91]
+
+[⑦ 约束 equality]
+  leg1_fourbar     | type=mjEQ_CONNECT |  <-> 
+            | solref=[0.005 1.05 ] | solimp=[2.0e-01 9.5e-01 2.0e-03 9.0e-01 6.0e+00]
+
+[⑧ 世界元素]
+  geom[0] floor type=mjGEOM_PLANE size=[10.   10.    0.02] friction=[1.e+00 5.e-03 1.e-04]
+  light[0]  pos=[30. 30. 30.] dir=[ 0.    -0.447 -0.894]
+
+[⑨ 派生关键数据]
+  总质量 9.9901 kg（设计规格 1.2~1.4kg）
+  自由度 nv=26，body=22，joint=21，actuator=13，equality=1
+  base_link 质量 8.5278 kg 占比 85.4%
+======================================================================

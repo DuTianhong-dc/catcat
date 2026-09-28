@@ -1,0 +1,14 @@
+<mujoco model="cat3.3_linkage_joint">
+  <!-- 四连杆闭环:官方 <joint> equality 四次多项式(8 个,正式版)
+       由 scripts/planE_4legs_official.py 重新生成,勿手改 -->
+  <equality>
+    <joint name="leg1_linkage_joint4" joint1="joint4" joint2="joint3" solref="0.0003 1.05" polycoef="-0.001650620535 -0.4535536832 -0.0502349092 0.01883377116 -0.03557780823"/>
+    <joint name="leg1_linkage_joint5" joint1="joint5" joint2="joint3" solref="0.0003 1.05" polycoef="-0.003411754794 -0.2084629358 -0.287239521 0.1602706708 -0.06433772677"/>
+    <joint name="leg2_linkage_joint9" joint1="joint9" joint2="joint8" solref="0.0003 1.05" polycoef="0.001650508856 -0.4535548943 0.0502290454 0.01882795195 0.03557624523"/>
+    <joint name="leg2_linkage_joint10" joint1="joint10" joint2="joint8" solref="0.0003 1.05" polycoef="0.003413645749 -0.2084495883 0.2872821059 0.1603062374 0.06434638416"/>
+    <joint name="leg3_linkage_joint14" joint1="joint14" joint2="joint13" solref="0.0003 1.05" polycoef="-0.001978815773 -0.3822373626 -0.1228017022 0.07338318172 -0.06380780256"/>
+    <joint name="leg3_linkage_joint15" joint1="joint15" joint2="joint13" solref="0.0003 1.05" polycoef="-0.0006214237093 -0.2464093902 -0.2048239656 0.1066213511 -0.06579301798"/>
+    <joint name="leg4_linkage_joint19" joint1="joint19" joint2="joint18" solref="0.0003 1.05" polycoef="0.001969523205 -0.3822537779 0.1227685913 0.07336223077 0.06380227959"/>
+    <joint name="leg4_linkage_joint20" joint1="joint20" joint2="joint18" solref="0.0003 1.05" polycoef="0.0006178764537 -0.2464173728 0.2047899822 0.1065940917 0.06578540507"/>
+  </equality>
+</mujoco>

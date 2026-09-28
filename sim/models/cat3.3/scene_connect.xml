@@ -1,0 +1,30 @@
+<mujoco model="cat3.3_scene_connect">
+  <!-- ============================================================
+       场景入口(menagerie 风格):include 本体 + 闭环模块 + 环境
+       加载: python -m mujoco.viewer scene.xml
+       ============================================================ -->
+  <include file="robot.xml"/>
+  <include file="linkage_connect.xml"/>
+  <!-- 环境:物理参数 + 视觉 + 地面/灯光(换场景只改这里,不动 robot.xml) -->
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" cone="pyramidal" iterations="100"/>
+  <visual>
+    <global realtime="1" />
+    <quality shadowsize="16384" numslices="28" offsamples="4" />
+    <headlight diffuse="1 1 1" specular="0.5 0.5 0.5" active="1" />
+    <rgba fog="0 0 0 1" haze="0 1 0 1" />
+  </visual>
+  <asset>
+    <texture type="skybox" file="textures/desert.png"
+        gridsize="3 4" gridlayout=".U..LFRB.D.." />
+    <texture name="plane" type="2d" builtin="checker" rgb1=".25 .25 .25" rgb2=".75 .75 .75"
+        width="512" height="512" mark="cross" markrgb=".7 .7 .7" />
+    <material name="plane" reflectance="0.05" texture="plane" texrepeat="1 1" texuniform="true" specular="0.1"/>
+    <material name="box" rgba="0 0.5 0 1"  emission="0"/>
+  </asset>
+  <worldbody>
+    <geom name="floor" pos="0 0 -0.07" size="10 10 0.02" type="plane" material="plane"
+        condim="3" friction="0.4 0.005 0.0001"/>
+    <light directional="true" ambient=".3 .3 .3" pos="30 30 30" dir="0 -.5 -1"
+        diffuse=".5 .5 .5" specular=".5 .5 .5" />
+  </worldbody>
+</mujoco>

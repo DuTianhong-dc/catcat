@@ -1,0 +1,39 @@
+<mujoco model="cat3.3_scene">
+  <!-- ============================================================
+       场景入口(menagerie 风格):include 本体 + 闭环模块 + 环境
+       加载: python -m mujoco.viewer scene.xml
+       ============================================================ -->
+  <include file="robot_full.xml"/>
+  <include file="linkage_joint.xml"/>
+  <!-- 环境:物理参数 + 视觉 + 地面/灯光(换场景只改这里,不动 robot.xml) -->
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" cone="pyramidal" iterations="100"/>
+  <visual>
+    <global realtime="1" />
+    <quality shadowsize="16384" numslices="28" offsamples="4" />
+    <headlight diffuse="1 1 1" specular="0.5 0.5 0.5" active="1" />
+    <rgba fog="0 0 0 1" haze="0 1 0 1" />
+  </visual>
+  <asset>
+    <texture type="skybox" file="textures/desert.png"
+        gridsize="3 4" gridlayout=".U..LFRB.D.." />
+    <texture name="plane" type="2d" builtin="checker" rgb1=".25 .25 .25" rgb2=".75 .75 .75"
+        width="512" height="512" mark="cross" markrgb=".7 .7 .7" />
+    <material name="plane" reflectance="0.05" texture="plane" texrepeat="1 1" texuniform="true" specular="0.1"/>
+    <material name="box" rgba="0 0.5 0 1"  emission="0"/>
+  </asset>
+  <worldbody>
+    <geom name="floor" pos="0 0 -0.07" size="10 10 0.02" type="plane" material="plane"
+        condim="3" friction="0.4 0.005 0.0001"/>
+    <light directional="true" ambient=".3 .3 .3" pos="30 30 30" dir="0 -.5 -1"
+        diffuse=".5 .5 .5" specular=".5 .5 .5" />
+  </worldbody>
+  <!-- 2026-08-22: 用户调好的参考站姿(control 面板: servo_joint2=-0.0476, servo3=1.04, servo7=0.125, servo8=-0.959) -->
+  <!--   keyframe qpos=前腿 hip/曲柄补偿, 作为 RL 的 default_joint_position/初始姿态 -->
+  <keyframe>
+    <!-- 2026-08-22 修正: 参考姿态改为左右对称(后左/后右精确镜像) -->
+    <!--   后左 joint2=-0.0476, joint3=1.04; 后右 joint7=0.0476, joint8=-1.04 -->
+    <!--   (原 7=0.125/8=-0.959 左右不对称 -> roll 侧倾; 改镜像后 roll≈0) -->
+    <key name="stand" qpos="-0.03347 0.00013 0.09548 0.99985 -0.00094 0.01678 -0.00393 -0.00125 -0.04663 1.03776 -0.54616 -0.42739 0.00053 0.04621 -1.03755 0.54602 0.42702 -0.00001 -0.01134 0.00191 -0.00282 -0.01115 0.00085 0.01194 -0.00201 0.00286 0.01050"
+      ctrl="0.0000 0.0000 -0.0476 1.0400 0.0000 0.0476 -1.0400 0.0000 0.0000 0.0000 0.0000 0.0000 0.0000"/>
+  </keyframe>
+</mujoco>
