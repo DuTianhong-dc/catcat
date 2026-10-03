@@ -12,12 +12,16 @@
 #include "cat_imu.h"
 #include "cat_esp32.h"
 
-/* ==================== Cortex-M4 异常 ==================== */
-void NMI_Handler(void){}
-void HardFault_Handler(void){ while (1){} }     /* 卡死在这: 读 PC/LR 可定位出错点 */
-void MemManage_Handler(void){ while (1){} }
-void BusFault_Handler(void){ while (1){} }
-void UsageFault_Handler(void){ while (1){} }
+/* ==================== Cortex-M4 异常 ====================
+ * ⚠️ 硬件异常 Handler 先留痕再死等(2026-10-03 审查 L5):
+ *   g_dbg.fault_mark 在 CCM(掉电不清、复位不清), IWDG 超时复位后 main 会读到它,
+ *   把 reset_cause 细化成 3(=异常被看门狗救回) —— 否则"偶发复位"分不清是死循环还是跑飞。
+ *   写寄存器就够, 不需要初始化任何东西, 在异常上下文里绝对安全。 */
+void NMI_Handler(void){ g_dbg.fault_mark = DBG_FAULT_MAGIC; while (1){} }
+void HardFault_Handler(void){ g_dbg.fault_mark = DBG_FAULT_MAGIC; while (1){} }
+void MemManage_Handler(void){ g_dbg.fault_mark = DBG_FAULT_MAGIC; while (1){} }
+void BusFault_Handler(void){ g_dbg.fault_mark = DBG_FAULT_MAGIC; while (1){} }
+void UsageFault_Handler(void){ g_dbg.fault_mark = DBG_FAULT_MAGIC; while (1){} }
 void SVC_Handler(void){}
 void DebugMon_Handler(void){}
 void PendSV_Handler(void){}

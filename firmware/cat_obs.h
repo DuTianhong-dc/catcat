@@ -55,8 +55,14 @@ void obs_get(float out[OBS_DIM]);                                     //填 59 �
 
 /* ④ 反向: 策略动作 → 舵机目标计数
  * act: ACT_DIM 维动作(已过 tanh, [-1,1]); out: 各颗 12bit 目标位置(直接喂 servo_sync_write)。
- * 链路 = 默认站姿 + act×ACTION_SCALE → 标定表逆变换 → 钳到 [0,4095]。
- * 返回被钳掉的颗数(0 = 全在范围内) —— 用来发现"策略想去的位置超出机械行程"。 */
+ * 链路 = 翻身版映射 q = clip(act×scale, lo, hi) → 标定表逆变换 → 钳到 [0,4095]。
+ * 返回被钳掉的颗数(0 = 全在范围内) —— 新口径下 q 被限位包住, 正常恒 0, 保留作防御。 */
 uint8_t obs_act_to_counts(const float act[ACT_DIM], uint16_t out[SERVO_COUNT]);
+
+/* ④-b 绝对关节角(rad) → 舵机计数(0~4095): 只有换算, 不钳位不限号。
+ * 公式与 obs_update() 的观测换算互为逆 —— 【动作模块走这条】(2026-10-03)，
+ * 保证"观测 / 策略 / 动作"三条路的关节角↔计数换算只此一份, 不会两处口径漂移。
+ * 返回被 12bit 编码边界(0/4095)钳掉的颗数, 语义同 obs_act_to_counts。 */
+uint8_t obs_rad_to_counts(const float q[ACT_DIM], uint16_t out[SERVO_COUNT]);
 
 #endif

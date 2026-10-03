@@ -13,16 +13,10 @@
 /* 铁律⑦(模块间不许横向 include)的例外: cat_obs 本身就是聚合层 → 观测组装说明.md(八) */
 #include "cat_imu.h"        /* imu_get_gyro / imu_get_quat / imu_get_grav */
 #include "cat_vel_est.h"    /* vel_est_tick */
+#include "cat_pose.h"       /* CAT_POSE_DEF / CAT_POSE_LIM_* (系统常量, 2026-09-29 迁自本文件) */
 
-/* ---------- 默认站姿(rad) ----------
- * jpos 段的基准: 输出的是"关节角 − 默认站姿"。顺序 = 观测序号(右后→左后→前右→前左, 每腿 abd/hip/knee)。
- * 值的来源 → 观测组装说明.md(七)。 */
-static const float OBS_DEFAULT_POSE[ACT_DIM] = {
-     0.0f,    0.25f,    0.3f,
-     0.0f,   -0.25f,   -0.3f,
-     0.0f,    0.0f,     0.0f,
-     0.0f,    0.0f,     0.0f
-};
+/* 默认站姿 / 关节限位(翻身版动作映射用) → 已迁至 cat_pose.c 统一管理,
+ * 依据与数值来源 → 观测组装说明.md(七)(十)。 */
 
 /* ---------- 标定表(来历与坑 → 观测组装说明.md(七)) ---------- */
 static const uint16_t CAL_SERVO_ZERO[ACT_DIM] = {   /* 关节角 0 对应的舵机计数 */
@@ -40,6 +34,7 @@ static float   jpos[ACT_DIM];       //关节角(绝对, rad)
 static float   jvel[ACT_DIM];       //关节角速度(rad/s)
 static float   tau[ACT_DIM];        //关节力矩(N·m)
 static float   lastact[ACT_DIM];    //上一拍策略输出
+static float   act_scale[ACT_DIM];  //动作缩放 = max(|lo|,|hi|), obs_init 由限位表算
 static float   cmd_vw[OBS_LEN_CMD]; //命令 [vx, wz]
 static float   linvel[OBS_LEN_VEC]; //机体系线速度估计(m/s)
 static uint8_t have_prev;           //有没有上一拍关节角(差分速度要用)
@@ -47,7 +42,11 @@ static uint8_t have_prev;           //有没有上一拍关节角(差分速度�
 /* ==================== ① 初始化 ==================== */
 void obs_init(void){
     for (uint8_t i = 0; i < ACT_DIM; i++){
-        jpos[i]    = OBS_DEFAULT_POSE[i];   /* 初值 = 站姿 → jpos 段上电输出 0 */
+        float abs_lo = (CAT_POSE_LIM_LO[i] < 0.0f) ? -CAT_POSE_LIM_LO[i] : CAT_POSE_LIM_LO[i];
+        float abs_hi = (CAT_POSE_LIM_HI[i] < 0.0f) ? -CAT_POSE_LIM_HI[i] : CAT_POSE_LIM_HI[i];
+        act_scale[i] = (abs_lo > abs_hi) ? abs_lo : abs_hi;
+
+        jpos[i]    = CAT_POSE_DEF[i];   /* 初值 = 站姿 → jpos 段上电输出 0 */
         jvel[i]    = 0.0f;
         tau[i]     = 0.0f;
         lastact[i] = 0.0f;
@@ -88,7 +87,8 @@ void obs_set_tau_from_cur(const int16_t cur_lsbs[SERVO_COUNT]){
 
 /* ==================== ③ 更新 + 取数 ==================== */
 /* 计数→弧度、以及速度低通是"固件自研近似"这件事 → 观测组装说明.md(五)(六) */
-#define OBS_RAD_PER_COUNT   (6.2832f / 4096.0f)
+#define OBS_RAD_PER_COUNT   (6.283185307f / 4096.0f)   /* 精确 2π/4096(2026-10-03 审查 T7 修正;
+                                                        * 旧值 6.2832 有 ~7.5ppm 偏差, 与训练侧 2π 口径对齐) */
 #define OBS_JVEL_TAU_S      0.006366f
 
 /* 每拍更新观测的运动学部分。
@@ -127,7 +127,7 @@ void obs_get(float out[OBS_DIM]){
     for (uint8_t i = 0; i < OBS_LEN_CMD; i++) out[OBS_OFF_CMD + i] = cmd_vw[i];
 
     for (uint8_t i = 0; i < ACT_DIM; i++){
-        out[OBS_OFF_JPOS    + i] = jpos[i] - OBS_DEFAULT_POSE[i];
+        out[OBS_OFF_JPOS    + i] = jpos[i] - CAT_POSE_DEF[i];
         out[OBS_OFF_JVEL    + i] = jvel[i];
         out[OBS_OFF_TAU     + i] = tau[i];
         out[OBS_OFF_LASTACT + i] = lastact[i];
@@ -138,17 +138,35 @@ void obs_get(float out[OBS_DIM]){
 /* 与 obs_update() 的换算互为逆:
  *   正向(观测)  rad    = (counts − ZERO) × r2r × DIR
  *   反向(发指令) counts = ZERO + q × DIR / r2r      (DIR 只有 ±1, 除它等于乘它)
- * ⚠️ 钳到 [0,4095] —— 12bit 编码的有效范围。越界说明策略想去的位置超出机械行程,
- *    用返回值报出去(观测区 pol_clip), 别静默夹掉。 */
+ * ⚠️ 钳到 [0,4095] —— 12bit 编码的有效范围。新口径下 q 已被限位包住, 正常不触发,
+ *    保留作防御(act 越界/NaN); 触发用返回值报出去(观测区 pol_clip), 别静默夹掉。 */
 uint8_t obs_act_to_counts(const float act[ACT_DIM], uint16_t out[SERVO_COUNT]){
+    float q[ACT_DIM];
+
+    for (uint8_t i = 0; i < ACT_DIM; i++){
+        /* 动作 → 目标关节角: 翻身版 = 绝对角, 逐关节按物理限位裁剪(与训练 clip(a×scale) 同序) */
+        float v = act[i] * act_scale[i];
+        /* ⚠️ NaN 防御(2026-10-03 审查 M1): 下面的比较对 NaN 恒为 false → 钳位全部失效,
+         *    q 保持 NaN → (uint16_t)NaN 是未定义行为(ARM 实际给 0), 目标位置直接落 0/4095
+         *    极端值 = 12 颗舵机猛冲机械限位。来源: IMU float 帧坏位模式(校验和只管传输错,
+         *    不管数值合法性) → 观测 NaN → 网络传播 → 动作 NaN。一行换掉一类机械风险。 */
+        if (v != v) v = 0.0f;
+        if (v < CAT_POSE_LIM_LO[i]) v = CAT_POSE_LIM_LO[i];
+        if (v > CAT_POSE_LIM_HI[i]) v = CAT_POSE_LIM_HI[i];
+        q[i] = v;
+    }
+    return obs_rad_to_counts(q, out);       /* 换算+编码边界钳位只有一份, 见下 */
+}
+
+/* 绝对关节角 → 舵机计数。⚠️ 调用方保证 q 已合法(限位内/无 NaN) —— 本函数只做换算,
+ * 只对【12bit 编码边界 0/4095】做最后一道防御性钳位(返回钳掉的颗数)。 */
+uint8_t obs_rad_to_counts(const float q[ACT_DIM], uint16_t out[SERVO_COUNT]){
     uint8_t clipped = 0u;
 
     for (uint8_t i = 0; i < ACT_DIM; i++){
-        /* 动作 → 目标关节角: 默认站姿 + 缩放后的偏移 */
-        float q = OBS_DEFAULT_POSE[i] + act[i] * ACTION_SCALE;
-        /* 关节角 → 舵机计数 */
+        /* 关节角 → 舵机计数(与 obs_update 的正向换算互为逆; 公式见本文件 ③ 段头) */
         float c = (float)CAL_SERVO_ZERO[i]
-                + q * (float)CAL_SERVO_DIR[i] / OBS_RAD_PER_COUNT;
+                + q[i] * (float)CAL_SERVO_DIR[i] / OBS_RAD_PER_COUNT;
 
         if (c < 0.0f)    { c = 0.0f;    clipped++; }
         if (c > 4095.0f) { c = 4095.0f; clipped++; }

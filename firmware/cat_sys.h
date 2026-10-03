@@ -17,6 +17,7 @@
 #define DBG_STAGE_BOOT      2u      /* 正在等外设就绪 */
 #define DBG_STAGE_READY     3u      /* 外设就绪, 进主循环 */
 #define DBG_STAGE_TIMEOUT   4u      /* 上电等待超时(外设没等到) */
+#define DBG_STAGE_OTA       5u      /* 在"更新模式"(上电按住 KEY0 进入, 只跑 OTA) */
 
 typedef struct {
     /* ---- 状态量 ---- */
@@ -67,17 +68,33 @@ typedef struct {
      * safety_trip 非 0 = 保护锁存 → 主循环每拍广播卸力、不再发新目标。 */
     uint32_t safety_clip;  /* +424 本拍被机械行程表钳掉的颗数(0 = 全在表内) */
     uint32_t safety_trip;  /* +428 保护锁存: 0=正常 1=低压 2=过载 3=过热 */
-} dbg_t;                   /* 共 432 字节 = 108 个 32 位字 */
+    /* ---- 策略在线更新探针(2026-09-29 加) ---- */
+    uint32_t pol_src;      /* +432 当前策略来源: 0=出厂常量 1=槽A 2=槽B */
+    uint32_t pol_seq;      /* +436 当前策略 seq(出厂常量=0) */
+    /* ---- IWDG 探针(2026-09-29 深夜, main 系统收口) ---- */
+    uint32_t reset_cause;  /* +440 本次复位源: 0=上电(含烧录/复位键) 1=IWDG(卡死被救回) 3=HardFault 被救 */
+    /* ---- 审查修复探针(2026-10-03) ---- */
+    uint32_t imu_silent;   /* +444 IMU 连续无新帧的拍数(0=正常; ≥IMU_SILENT_LOOPS 拍=判定静默) */
+    uint32_t fault_mark;   /* +448 异常留痕: ==DBG_FAULT_MAGIC 说明上轮由硬件异常兜住(reset_cause 会用 3 标注) */
+    /* ---- 动作模块探针(2026-10-03) ---- */
+    uint32_t act_frames;   /* +452 动作表内帧数(0 = 无表) */
+    uint32_t act_stage;    /* +456 播放阶段: 0=空闲 1=进场 2=关键帧 3=出场(ACT_STAGE_*) */
+    uint32_t act_idx;      /* +460 当前关键帧序号(stage=2 时有效) */
+} dbg_t;                   /* 共 464 字节 = 116 个 32 位字 */
 
 /* 固件版本标识: 改了代码就改它。
  * ⚠️ 用途: 观测区新旧版本的字段值可能完全一样(比如 servo_err 新旧都是 0), 没有它
- *    就没法区分"烧录没成功"和"改了没效果" —— 2026-09-27 上午就为此白折腾了一轮。 */
-#define DBG_FW_VER   0x20260928u
+ *    就没法区分"烧录没成功"和"改了没效果" —— 2026-09-27 上午就为此白折腾了一轮。
+ * ⚠️ 同一天多次改动请改末位序号(a/b/c), 否则同日期多个 hex 无法区分(2026-10-03 审查 L6)。 */
+#define DBG_FW_VER   0x20261003u   /* 10-03a 版 = 审查修复(1013) + 探针扩容 */
+
+/* 异常留痕 magic: 硬件异常 Handler 写进 g_dbg.fault_mark(CCM, 复位不清) —— cat_it.c 用 */
+#define DBG_FAULT_MAGIC  0xFA017001u
 
 extern dbg_t g_dbg;        /* 定义在 cat_sys.c, 放在 CCM RAM 0x10000000 */
 
 /* 长度兜底: 改了结构体忘了同步读法, 这里直接编译报错 */
-typedef char _dbg_size_check[(sizeof(dbg_t) == 432u) ? 1 : -1];
+typedef char _dbg_size_check[(sizeof(dbg_t) == 464u) ? 1 : -1];
 
 /* ==================== 函数原型 ==================== */
 /* ① 初始化 (顺序不能反: 先配时钟, 再配时基 —— 时基的计数值按 168MHz 算) */

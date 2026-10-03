@@ -15,7 +15,8 @@
 #include "cat_config.h"     /* 系统级配置(时钟等硬件常量) */
 
 /* ---------- 全局变量 ---------- */
-uint8_t id;     //本次指令包的目标 ID(0~253, 254=广播)。servo_com_pack_set() 写入, servo_tx_frame_build() 取用
+static uint8_t id;     //本次指令包的目标 ID(0~253, 254=广播)。servo_com_pack_set() 写入, servo_tx_frame_build() 取用
+                       //⚠️ static(2026-10-03 审查 T6): 全模块自用, 不该对外暴露符号
 static command_packet_t com_pack;
 static uint8_t tx_frame[BUFFER];    //待发送的整帧(含字头/ID/LEN/指令/参数/校验和)
 static uint16_t tx_frame_len;       //tx_frame 里的实际字节数(用 16 位: 免得 BUFFER 再调时被顶溢出)

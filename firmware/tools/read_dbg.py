@@ -2,7 +2,7 @@
 
 用法:
     python tools/read_dbg.py [地址] [字节数]
-    默认 0x10000000 / 432 (与 cat_sys.h 的 dbg_t 布局对应)
+    默认 0x10000000 / 464 (与 cat_sys.h 的 dbg_t 布局对应)
 
 原理: 观测区是 CCM RAM 里的固定地址结构体, 不接串口也能看固件跑到哪、自检结果如何。
       ⚠️ 改了 cat_sys.h 的 dbg_t 就必须同步改下面的 LAYOUT —— 否则解析全错(而且不会报错)。
@@ -19,9 +19,12 @@ CLI = (r"C:\Program Files\STMicroelectronics\STM32Cube"
        r"\STM32CubeProgrammer\bin\STM32_Programmer_CLI.exe")
 
 DBG_MAGIC = 0xCA7DB001
-DBG_FW_VER = 0x20260928      # ⚠️ 必须与 cat_sys.h 的 DBG_FW_VER 一致
+DBG_FW_VER = 0x20260930      # ⚠️ 必须与 cat_sys.h 的 DBG_FW_VER 一致
+# ⚠️ 与 cat_pose.c 的 CAT_POSE_DEF 同步（2026-09-30 审计逐条一致）——把 obs 相对角换算回绝对角用
+POSE_DEF = [0.0, 0.25, 0.30, 0.0, -0.25, -0.30, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 CYCLES_PER_US = 168          # CPU_MHZ
-STAGE = {1: "INIT", 2: "BOOT(等外设)", 3: "READY(进主循环)", 4: "TIMEOUT(没等到外设)"}
+STAGE = {1: "INIT", 2: "BOOT(等外设)", 3: "READY(进主循环)", 4: "TIMEOUT(没等到外设)",
+         5: "OTA(更新模式: 按住 KEY0 上电进来的)"}
 
 # (偏移, 名字, 类型, 数量, 说明)  —— 类型: u32 / f32
 LAYOUT = [
@@ -56,11 +59,23 @@ LAYOUT = [
     (404, "t_pol",        "u32", 1,  "耗时: policy_run + 动作→计数换算"),
     (408, "t_up",         "u32", 1,  "耗时: report_state(含串口阻塞发送)"),
     (412, "t_send",       "u32", 1,  "耗时: servo_sync_write(不使能时≈0)"),
-    (416, "fw_ver",       "u32", 1,  "固件版本标识(期望 0x20260928)"),
+    (416, "fw_ver",       "u32", 1,  "固件版本标识(期望 0x20261003)"),
     (420, "t_all",        "u32", 1,  "整拍【忙碌】耗时"),
     # ---- 安全闸(2026-09-28 接线收口时加) ----
     (424, "safety_clip",  "u32", 1,  "目标钳位: 被机械行程表钳掉的颗数(0=全在表内)"),
     (428, "safety_trip",  "u32", 1,  "保护锁存: 0=正常 1=低压 2=过载 3=过热"),
+    # ---- 策略在线更新(2026-09-29 加) ----
+    (432, "pol_src",      "u32", 1,  "策略来源: 0=出厂常量 1=槽A 2=槽B"),
+    (436, "pol_seq",      "u32", 1,  "策略 seq(出厂常量=0)"),
+    # ---- IWDG(2026-09-29 深夜加) ----
+    (440, "reset_cause",  "u32", 1,  "本次复位源: 0=上电 1=IWDG(卡死被救回) 3=HardFault 被救"),
+    # ---- 审查修复探针(2026-10-03 加) ----
+    (444, "imu_silent",   "u32", 1,  "IMU 连续无新帧拍数(0=正常; >=25=判定静默, 已停发新目标)"),
+    (448, "fault_mark",   "u32", 1,  "异常留痕: ==0xFA017001 说明上轮由硬件异常兜住"),
+    # ---- 动作模块探针(2026-10-03 加) ----
+    (452, "act_frames",   "u32", 1,  "动作表内帧数(0 = 无表)"),
+    (456, "act_stage",    "u32", 1,  "动作播放阶段: 0=空闲 1=进场 2=关键帧 3=出场"),
+    (460, "act_idx",      "u32", 1,  "当前关键帧序号(阶段=2 时有效)"),
 ]
 
 
@@ -108,8 +123,8 @@ def main():
     pos = [a for a in argv if not a.startswith("--")]
     addr = int(pos[0], 0) if len(pos) > 0 else 0x10000000
     # ⚠️ 默认长度必须 = sizeof(dbg_t)(见 cat_sys.h)。读少了末尾字段会【静默显示成 0】——
-    #    2026-09-27 就因为这个把"工具读少了"误判成"固件没烧成功"。当前结构体 = 432 字节。
-    nbytes = int(pos[1]) if len(pos) > 1 else 432
+    #    2026-09-27 就因为这个把"工具读少了"误判成"固件没烧成功"。当前结构体 = 464 字节。
+    nbytes = int(pos[1]) if len(pos) > 1 else 464
     need = max(off + 4 * n for off, _, _, n, _ in LAYOUT)
     if nbytes < need:
         print("⚠️ 读取长度 %d < LAYOUT 需要的 %d 字节 —— 末尾字段会显示成 0(假象!)"
@@ -140,6 +155,11 @@ def main():
     print("\n【状态】")
     print("  stage      : %d  %s" % (stage, STAGE.get(stage, "?")))
     print("  ms / loops : %d ms / %d 圈" % (ms, loops))
+    rc = vals["reset_cause"][0]
+    print("  reset_cause: %d  %s" % (rc, "上电/复位键" if rc == 0 else
+          ("⛔ IWDG 复位 —— 上一轮固件卡死被救回! 查死循环" if rc == 1 else
+           ("软复位 —— OTA 结束后的自动重启" if rc == 2 else
+            ("⛔⛔ HardFault 被救回 —— 上轮跑飞(异常 Handler 留痕)! 查指针/数组越界" if rc == 3 else "?")))))
     if ms > 0 and loops > 0:
         per = ms / loops
         print("  主循环周期 : %.2f ms  (50Hz 应 ≈20ms)%s"
@@ -188,7 +208,8 @@ def main():
     g = vals["grav"]
     nrm = (g[0] ** 2 + g[1] ** 2 + g[2] ** 2) ** 0.5
     print("           |grav| = %.3f  %s" % (nrm, "✅" if 0.9 < nrm < 1.1 else "⚠️ 不是单位向量"))
-    print("  jpos   : %s" % vec(vals["jpos"]))
+    print("  jpos_rel: %s  ← 相对站姿(=绝对-DEF; 策略obs所见)" % vec(vals["jpos"]))
+    print("  jpos_abs: %s  ← 绝对关节角(=rel+DEF) —— 与设定站姿对比看这行" % vec([vals["jpos"][i] + POSE_DEF[i] for i in range(12)]))
     print("  tau    : %s" % vec(vals["tau"], 4))
 
     # ---- 舵机反馈 ----
@@ -214,6 +235,26 @@ def main():
     st = vals["safety_trip"][0]
     print("  safety_trip: %d  %s  %s" % (st, TRIP.get(st, "?"),
           "✅" if st == 0 else "⛔ 已触发 → 每拍卸力中"))
+
+    # ---- 策略来源(在线更新) ----
+    print("\n【策略来源】")
+    SRC = {0: "出厂常量", 1: "槽A", 2: "槽B"}
+    ps = vals["pol_src"][0]
+    print("  pol_src: %d(%s)   pol_seq: %d" % (ps, SRC.get(ps, "?"), vals["pol_seq"][0]))
+
+    # ---- IMU 静默 + 动作模块(2026-10-03 加) ----
+    isl = vals["imu_silent"][0]
+    print("  imu_silent: %d  %s" % (isl,
+          "✅ IMU 在出数据" if isl < 25 else "⚠️ IMU 静默 → 已停发新目标(保持出力)"))
+    print("\n【动作模块】")
+    af = vals["act_frames"][0]
+    if af == 0:
+        print("  act_frames: 0   (无动作表: 没加载过动作)")
+    else:
+        STG = {0: "空闲", 1: "进场", 2: "关键帧", 3: "出场"}
+        stg = vals["act_stage"][0]
+        print("  act_frames: %d 帧" % af)
+        print("  act_stage: %d(%s)   act_idx: %d" % (stg, STG.get(stg, "?"), vals["act_idx"][0]))
     print("=" * 62)
 
     # ---- 可选: 导出"可直接喂 cmp_policy.py"的 obs 串 ----

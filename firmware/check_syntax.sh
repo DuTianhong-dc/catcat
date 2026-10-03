@@ -25,6 +25,7 @@ typedef signed char        int8_t;
 typedef signed short       int16_t;
 typedef signed int         int32_t;
 typedef unsigned long long uint64_t;
+typedef unsigned long long uintptr_t;   /* 2026-09-29 加: cat_policy 的地址转换用 */
 
 /* ---------- 外设寄存器 ----------
  * 只保证【成员名】正确，地址与字段偏移不代表真芯片(真机以 Keil 的 stm32f407xx.h 为准)。
@@ -36,7 +37,7 @@ typedef struct { volatile uint32_t SR, DR, BRR, CR1, CR2, CR3, GTPR; } USART_Typ
  * 中间用占位数组把顺序撑开, 偏移不要求与实际一致 —— 桩只保证"成员名"能编过。 */
 typedef struct { volatile uint32_t CR, PLLCFGR, CFGR, CIR;
                  volatile uint32_t PAD1[8], AHB1ENR, AHB2ENR, AHB3ENR;
-                 volatile uint32_t PAD2[3], APB1ENR, APB2ENR; } RCC_TypeDef;
+                 volatile uint32_t PAD2[3], APB1ENR, APB2ENR, CSR; } RCC_TypeDef;   /* CSR: cat_safety 读复位源用 */
 /* TIM(定时器): 顺序按 RM0090, 桩只保证成员名能编过 */
 typedef struct { volatile uint32_t CR1, CR2, SMCR, DIER, SR, EGR, CCMR1, CCMR2, CCER,
                                   CNT, PSC, ARR, CCR1, CCR2, CCR3, CCR4; } TIM_TypeDef;
@@ -44,10 +45,13 @@ typedef struct { volatile uint32_t CTRL, CYCCNT; } DWT_TypeDef;
 typedef struct { volatile uint32_t DEMCR; } CoreDebug_TypeDef;
 typedef struct { volatile uint32_t CTRL, LOAD, VAL, CALIB; } SysTick_TypeDef;
 typedef struct { volatile uint32_t ACR, KEYR, OPTKEYR, SR, CR, OPTCR; } FLASH_TypeDef;
+typedef struct { volatile uint32_t KR, PR, RLR, SR; } IWDG_TypeDef;                 /* cat_safety 看门狗 */
+typedef struct { volatile uint32_t IDCODE, CR, APB1FZ, APB2FZ; } DBGMCU_TypeDef;    /* 调试冻结用 */
 
 #define GPIOC     ((GPIO_TypeDef *)  0x40020800UL)
 #define GPIOB     ((GPIO_TypeDef *)  0x40020400UL)
 #define GPIOA     ((GPIO_TypeDef *)  0x40020000UL)
+#define GPIOE     ((GPIO_TypeDef *)  0x40021000UL)   /* 按键 KEY0(PE4) 用 */
 #define USART6    ((USART_TypeDef *) 0x40011400UL)
 #define USART2    ((USART_TypeDef *) 0x40004400UL)
 #define USART3    ((USART_TypeDef *) 0x40004800UL)
@@ -57,6 +61,8 @@ typedef struct { volatile uint32_t ACR, KEYR, OPTKEYR, SR, CR, OPTCR; } FLASH_Ty
 #define CoreDebug ((CoreDebug_TypeDef *) 0xE000EDF0UL)
 #define SysTick   ((SysTick_TypeDef *)    0xE000E010UL)
 #define FLASH     ((FLASH_TypeDef *)      0x40023C00UL)
+#define IWDG      ((IWDG_TypeDef *)       0x40003000UL)
+#define DBGMCU    ((DBGMCU_TypeDef *)     0xE0042000UL)
 
 /* ---------- 中断号 + NVIC（真值分别是 CMSIS 的 IRQn_Type / core_cm4.h 内联函数） ---------- */
 /* 中断号取真值: stm32f407xx.h 的 IRQn_Type (USART2=38, USART3=39)
@@ -64,6 +70,7 @@ typedef struct { volatile uint32_t ACR, KEYR, OPTKEYR, SR, CR, OPTCR; } FLASH_Ty
 typedef enum { SysTick_IRQn = -1, USART2_IRQn = 38, USART3_IRQn = 39 } IRQn_Type;
 #define NVIC_EnableIRQ(x)        ((void)(x))
 #define NVIC_SetPriority(x, p)   ((void)(x), (void)(p))
+#define __WFI()                  ((void)0)   /* core_cm4.h 的内联汇编 → 桩里变空操作 */
 
 /* ---------- 位宏（用真实值） ---------- */
 #define USART_SR_RXNE            (1u << 5)
@@ -76,12 +83,37 @@ typedef enum { SysTick_IRQn = -1, USART2_IRQn = 38, USART3_IRQn = 39 } IRQn_Type
 #define RCC_AHB1ENR_GPIOAEN      (1u << 0)
 #define RCC_AHB1ENR_GPIOBEN      (1u << 1)
 #define RCC_AHB1ENR_GPIOCEN      (1u << 2)
+#define RCC_AHB1ENR_GPIOEEN      (1u << 4)
 #define RCC_APB1ENR_USART2EN     (1u << 17)
 #define RCC_APB1ENR_USART3EN     (1u << 18)
 #define RCC_APB1ENR_TIM4EN       (1u << 2)
 #define RCC_APB2ENR_USART6EN     (1u << 5)
 #define CoreDebug_DEMCR_TRCENA_Msk   (1u << 24)
 #define DWT_CTRL_CYCCNTENA_Msk       (1u << 0)
+
+/* ---------- FLASH 位宏(2026-09-29 加: cat_polupd 用; 值按 RM0090) ---------- */
+#define FLASH_SR_EOP             (1u << 0)
+#define FLASH_SR_WRPERR          (1u << 4)
+#define FLASH_SR_PGAERR          (1u << 5)
+#define FLASH_SR_PGPERR          (1u << 6)
+#define FLASH_SR_PGSERR          (1u << 7)
+#define FLASH_SR_BSY             (1u << 16)
+#define FLASH_CR_PG              (1u << 0)
+#define FLASH_CR_SER             (1u << 1)
+#define FLASH_CR_SNB             (0xFu << 3)
+#define FLASH_CR_SNB_Pos         3u
+#define FLASH_CR_PSIZE           (3u << 8)      /* 大小档掩码(补齐/清位用) */
+#define FLASH_CR_PSIZE_1         (2u << 8)      /* x32 (VDD 2.7~3.6V) */
+#define FLASH_CR_STRT            (1u << 16)
+#define FLASH_CR_LOCK            (1u << 31)
+
+/* ---------- IWDG / 复位源位宏(2026-09-29 深夜加: cat_safety 看门狗; 值按 RM0090) ---------- */
+#define IWDG_SR_RVU              (1u << 1)
+#define RCC_CSR_RMVF             (1u << 24)
+#define RCC_CSR_SFTRSTF          (1u << 28)
+#define RCC_CSR_IWDGRSTF         (1u << 29)
+#define DBGMCU_APB1_FZ_DBG_IWDG_STOP   (1u << 12)
+#define NVIC_SystemReset()       ((void)0)   /* core_cm4.h 内联 → 桩里变空操作 */
 
 /* ---------- 时钟配置用到的位宏(main.c 的 clock_init) ---------- */
 #define RCC_CR_HSEON             (1u << 16)

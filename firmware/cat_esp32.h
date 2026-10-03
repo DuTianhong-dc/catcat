@@ -13,8 +13,15 @@
 
 /* ==================== 通信参数 ==================== */
 #define ESP32_BAUD        115200u   /* 8N1 */
-#define ESP32_RX_BUF        64u     /* 环形接收缓冲(下行帧 10 字节, 够装多帧) */
-#define ESP32_TX_BUF        96u     /* 上行组包缓冲(整帧 91 字节 + 余量) */
+#define ESP32_RX_BUF       256u     /* 环形接收缓冲(2026-09-29: 64→256, 为 OTA 大流量兜底) */
+/* (原 ESP32_TX_BUF 96 已删, 2026-10-03 审查 T4: 从未被引用 —— 上行组包缓冲是
+ *  esp32_send_up() 里的局部 f[64], 真要用再按需定义, 别留死常量。) */
+
+/* ---- OTA 帧(策略在线更新; 帧格式与流程 → 通信协议.txt 第七章) ----
+ * 下行第二类帧: CC | len | 数据(len) | ck —— 与 10B 控制帧并存, 首字节区分。
+ * 本模块只负责"收帧边界 + 校验和"; 子类型分派与处理 → cat_polupd。 */
+#define ESP32_OTA_HEAD      0xCCu
+#define ESP32_OTA_MAX         96u   /* 单帧数据上限(BEGIN 帧数据 73B 为最大) */
 
 /* ==================== 下行帧 (上位机 → 本板, 固定 10 字节) ====================
  *   AA 55 | vx[2] | wz[2] | flags[1] | pan[1] | tilt[1] | ck[1]
@@ -76,6 +83,7 @@ void esp32_init(void);              //配 USART3 + PB10/PB11(AF7) + 开接收中
 /* ② 收发 */
 void esp32_data_recv(uint8_t byte);                              //中断里喂 1 个字节进环形缓冲
 void esp32_data_send(const uint8_t *tx_buf, uint16_t tx_len);    //发一串字节
+void esp32_send_up(uint8_t type, const uint8_t *payload, uint8_t len);  //组上行帧(5A A5..)并发送
 
 /* ③ 解析 */
 void esp32_poll(void);              //主循环里调: 排空缓冲喂状态机 + 判失联(DEADMAN)
@@ -83,6 +91,9 @@ void esp32_poll(void);              //主循环里调: 排空缓冲喂状态机 
 /* ④ 取数 */
 const esp32_cmd_t *esp32_get_cmd(void);   //取最新一条指令(返回指针, 只读)
 uint8_t               esp32_alive(void);      //上位机是否还在连(未超 DEADMAN)
+/* 取一帧已收好的 OTA 数据(首字节=子类型)。有则返回缓冲指针与长度, 无则 NULL。
+ * 取走即释放 —— 处理完再收下一帧(主循环节奏足够)。 */
+const uint8_t *esp32_ota_fetch(uint16_t *len);
 
 /* ⚠️ 状态上报(组包)不在这里: 见 main.c 的 report_state()。
  *   它要同时取 IMU 和舵机的数据, 属于跨模块编排, 放本模块会让本模块反过来依赖 cat_imu。 */

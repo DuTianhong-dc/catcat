@@ -3,9 +3,9 @@
  *
  *  分层(本文件按此顺序排列, 新函数插到对应区块, 别追加到末尾):
  *    ① 初始化   esp32_init()
- *    ② 收发     esp32_data_recv() / esp32_data_send()   [+ 环形接收缓冲]
+ *    ② 收发     esp32_data_recv() / esp32_data_send() / esp32_send_up()  [+ 环形接收缓冲]
  *    ③ 解析     esp32_parse_byte()(内部) / esp32_poll()
- *    ④ 取数     esp32_get_cmd() / esp32_alive()
+ *    ④ 取数     esp32_get_cmd() / esp32_alive() / esp32_ota_fetch()
  *
  *  命名: 发送侧 tx_ 前缀, 接收侧 rx_ 前缀。
  *  协议 → 通信协议.txt(五); 实现依据 → ESP32通信说明.md
@@ -15,7 +15,11 @@
 #include "cat_sys.h"        /* esp32_poll 的失联判定要用时基 */
 
 /* ---------- 环形接收缓冲 ----------
- * 中断只"入队", 解析放主循环 → 中断停留最短。满时丢【最旧】→ ESP32通信说明.md(五) */
+ * 中断只"入队", 解析放主循环 → 中断停留最短。满时丢【最旧】→ ESP32通信说明.md(五)
+ * ⚠️ 已知竞态(2026-10-03 审查 T2, 保留不修): rx_r 被两边写 —— 主循环消费时推进,
+ *    中断在"满"时也推进(丢最旧)。极端时序下可能丢/重收 1 字节, 后果限于单帧错乱,
+ *    由帧校验和(ck)整帧丢弃兜底。要根治得让中断只写 rx_w(满时丢新), 但那会牺牲
+ *    "保最新"的语义(OTA/控制流里新数据更重要) —— 取舍后维持现状。 */
 static volatile uint8_t  rx_buf[ESP32_RX_BUF];
 static volatile uint16_t rx_w;      //写入下标
 static volatile uint16_t rx_r;      //读取下标
@@ -24,6 +28,19 @@ static volatile uint16_t rx_r;      //读取下标
  * 每解出一帧就覆盖一份 → 上层取到的永远是最新的那条指令。 */
 static esp32_cmd_t cmd;         //当前指令(供 esp32_get_cmd 取)
 static uint32_t        last_ms;     //最后一次收到有效帧的时刻(失联判定用)
+
+/* ---------- 下行控制帧(0xAA)状态机变量 (2026-09-29 提出函数, 供 OTA 分流判断) ---------- */
+static uint8_t s_dl_buf[ESP32_DL_LEN];
+static uint8_t s_dl_idx;
+
+/* ---------- OTA 帧(0xCC)收集状态机 ----------
+ * CC | len | 数据(len, 首字节=子类型) | ck。收齐且校验过 → s_ota_ready, 等主循环取走。 */
+static uint8_t          s_ota_stage;        /* 0=空闲 1=收len 2=收数据 3=收ck */
+static uint8_t          s_ota_buf[ESP32_OTA_MAX];
+static uint8_t          s_ota_len;          /* 期望数据长度 */
+static uint8_t          s_ota_idx;
+static uint8_t          s_ota_ck;           /* 累加校验(含 CC/len/数据) */
+static volatile uint8_t s_ota_ready;        /* 1=有一帧待取 */
 
 /* ==================== ① 初始化 ==================== */
 /* 配 USART3 + PB10(TX)/PB11(RX), 开接收中断。调用前 sys_clock_init() 必须先跑
@@ -70,17 +87,58 @@ void esp32_data_send(const uint8_t *tx_buf, uint16_t tx_len){
     while (!(USART3->SR & USART_SR_TC));
 }
 
-/* ==================== ③ 解析 ==================== */
-/* 喂 1 个字节进下行帧状态机(定长 10 字节, 比 IMU 的变长帧简单), 收齐一帧就校验+解析。 */
-static void esp32_parse_byte(uint8_t byte){
-    static uint8_t buf[ESP32_DL_LEN];
-    static uint8_t idx;
+/* 组一条上行小帧并发送(OTA 的 ACK/STAT 用):
+ *   5A A5 | len | type | 载荷(len) | ck,  ck = 从字节 0 累加 & 0xFF(含帧头, 协议 5.3)。
+ * 缓冲够 ACK(1B)/STAT(44B); 更大的载荷先扩缓冲。 */
+void esp32_send_up(uint8_t type, const uint8_t *payload, uint8_t len){
+    uint8_t f[64u];
+    uint8_t n = 0u, ck = 0u;
+    f[n++] = ESP32_UP_HEAD0;
+    f[n++] = ESP32_UP_HEAD1;
+    f[n++] = len;
+    f[n++] = type;
+    for (uint8_t i = 0; i < len; i++) f[n++] = payload[i];
+    for (uint8_t i = 0; i < n; i++) ck = (uint8_t)(ck + f[i]);
+    f[n++] = ck;
+    esp32_data_send(f, n);
+}
 
-    switch (idx) {
+/* ==================== ③ 解析 ==================== */
+/* 下行有两类帧, 用首字节分流: 0xCC = OTA 变长帧(策略在线更新, 第七章);
+ * 0xAA = 10B 控制帧。一旦进入 OTA 收集就只喂 OTA 状态机。 */
+static void esp32_ota_byte(uint8_t b){
+    if (s_ota_ready) return;                    /* 上帧还没被取走, 忽略(防覆盖) */
+    switch (s_ota_stage){
+    case 0u:                                    /* 帧头 CC(入口已判) */
+        s_ota_ck    = b;
+        s_ota_stage = 1u;
+        break;
+    case 1u:                                    /* len */
+        if (b == 0u || b > ESP32_OTA_MAX) { s_ota_stage = 0u; return; }
+        s_ota_len   = b;
+        s_ota_idx   = 0u;
+        s_ota_ck    = (uint8_t)(s_ota_ck + b);
+        s_ota_stage = 2u;
+        break;
+    case 2u:                                    /* 数据 */
+        s_ota_buf[s_ota_idx++] = b;
+        s_ota_ck = (uint8_t)(s_ota_ck + b);
+        if (s_ota_idx >= s_ota_len) s_ota_stage = 3u;
+        break;
+    default:                                    /* ck: 从 CC 起累加(含帧头) */
+        if (b == s_ota_ck) s_ota_ready = 1u;
+        s_ota_stage = 0u;
+        break;
+    }
+}
+
+/* 喂 1 个字节进下行控制帧状态机(定长 10 字节), 收齐一帧就校验+解析。 */
+static void esp32_dl_byte(uint8_t byte){
+    switch (s_dl_idx) {
     case 0u:                                            //① 等帧头0
         if (byte == ESP32_DL_HEAD0) {
-            buf[idx] = byte;
-            idx++;
+            s_dl_buf[s_dl_idx] = byte;
+            s_dl_idx++;
         }
         break;
 
@@ -88,33 +146,42 @@ static void esp32_parse_byte(uint8_t byte){
         /* 来的还是 AA 就把它当新包头1(保持 idx=1), 不直接复位 —— 否则
          * "AA(噪声) AA 55" 里的真包头会被吃掉。跟 IMU 那个坑同理: IMU驱动说明.md(四) */
         if (byte == ESP32_DL_HEAD1) {
-            buf[idx] = byte;
-            idx++;
+            s_dl_buf[s_dl_idx] = byte;
+            s_dl_idx++;
         } else if (byte != ESP32_DL_HEAD0) {
-            idx = 0u;                                   //既不是 AA 也不是 55 → 重新找包头
+            s_dl_idx = 0u;                              //既不是 AA 也不是 55 → 重新找包头
         }
         break;
 
     default:                                            //③ 收数据(idx = 2~9)
-        buf[idx] = byte;
-        idx++;
-        if (idx < ESP32_DL_LEN) break;                  //还没收齐, 等下一个字节
+        s_dl_buf[s_dl_idx] = byte;
+        s_dl_idx++;
+        if (s_dl_idx < ESP32_DL_LEN) break;             //还没收齐, 等下一个字节
 
-        idx = 0u;                                       //一帧收齐(校验过不过都先复位)
+        s_dl_idx = 0u;                                  //一帧收齐(校验过不过都先复位)
         {   uint8_t ck = 0;                             //校验和: 从 vx 累加到 tilt(不含帧头)
             for (uint8_t i = ESP32_DL_CK_FIRST; i < ESP32_DL_CK_OFF; i++)
-                ck = (uint8_t)(ck + buf[i]);
-            if (ck == buf[ESP32_DL_CK_OFF]) {           //校验过了才解析, 不过就丢整帧
-                cmd.vx     = (float)(int16_t)(buf[2] | ((uint16_t)buf[3] << 8)) / ESP32_DL_SCALE;
-                cmd.wz     = (float)(int16_t)(buf[4] | ((uint16_t)buf[5] << 8)) / ESP32_DL_SCALE;
-                cmd.enable = (uint8_t)(buf[6] & 0x01u); //只有 bit0 = 使能
-                cmd.pan    = (int8_t)buf[7];
-                cmd.tilt   = (int8_t)buf[8];
+                ck = (uint8_t)(ck + s_dl_buf[i]);
+            if (ck == s_dl_buf[ESP32_DL_CK_OFF]) {      //校验过了才解析, 不过就丢整帧
+                cmd.vx     = (float)(int16_t)(s_dl_buf[2] | ((uint16_t)s_dl_buf[3] << 8)) / ESP32_DL_SCALE;
+                cmd.wz     = (float)(int16_t)(s_dl_buf[4] | ((uint16_t)s_dl_buf[5] << 8)) / ESP32_DL_SCALE;
+                cmd.enable = (uint8_t)(s_dl_buf[6] & 0x01u);    //只有 bit0 = 使能
+                cmd.pan    = (int8_t)s_dl_buf[7];
+                cmd.tilt   = (int8_t)s_dl_buf[8];
                 last_ms    = sys_ms();                  //记时刻, 失联判定要用
             }
         }
         break;
     }
+}
+
+/* 喂 1 个字节(主循环 esp32_poll 里从环形缓冲取出后调)。 */
+static void esp32_parse_byte(uint8_t byte){
+    if (s_ota_stage != 0u || (s_dl_idx == 0u && byte == ESP32_OTA_HEAD)){
+        esp32_ota_byte(byte);
+        return;
+    }
+    esp32_dl_byte(byte);
 }
 
 /* 主循环里调: 排空缓冲喂状态机, 再做失联判定。
@@ -126,7 +193,9 @@ void esp32_poll(void){
         esp32_parse_byte(b);
     }
 
-    /* DEADMAN: 超时没收到有效帧 → 停。不能让猫抱着最后一条指令一直走下去 */
+    /* DEADMAN: 超时没收到有效帧 → 停。不能让猫抱着最后一条指令一直走下去。
+     * ⚠️ 只归零运动量(enable/vx/wz): 云台 pan/tilt【故意不归零】—— 云台是独立通道,
+     *    失联保持最后角度(2026-09-30 定, 见 通信协议.txt 6.6); 顺手把它归零才是 bug。 */
     if (sys_elapsed(last_ms, ESP32_DEADMAN_MS)) {
         cmd.enable = 0u;
         cmd.vx     = 0.0f;
@@ -143,4 +212,12 @@ const esp32_cmd_t *esp32_get_cmd(void){
 /* 上位机是否还在连(没超过 DEADMAN)。0 = 已失联, 此时 get_cmd 的使能必然是 0。 */
 uint8_t esp32_alive(void){
     return (uint8_t)!sys_elapsed(last_ms, ESP32_DEADMAN_MS);
+}
+
+/* 取一帧已收好的 OTA 数据(首字节=子类型); 无则 NULL。取走即释放(处理完再收下一帧)。 */
+const uint8_t *esp32_ota_fetch(uint16_t *len){
+    if (!s_ota_ready) return 0;
+    if (len) *len = s_ota_len;
+    s_ota_ready = 0u;
+    return s_ota_buf;
 }
