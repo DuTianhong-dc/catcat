@@ -1,0 +1,178 @@
+{
+  "_meta": {
+    "tag": "lee2019_standup_exp01",
+    "task": "Lee 2019 standing-up 行为复现（趴姿 → 站起来）",
+    "date": "2026-11-05",
+    "env_name": "Cat40Lee2019",
+    "steps": 1000000,
+    "ckpt": "",
+    "net_spec": "lee2019_behavior",
+    "status": "🟡 配置就绪，代码补丁 _impl_standup.py 尚未执行（等 EXP-01 让出 GPU）",
+    "parent": "configs/exp01.json（同一 Cat40Lee2019 副本，只换任务配置）",
+    "single_source": "本目录是本任务配置的唯一权威副本",
+    "train_cmd": "bash tools/train_cat40_speed.sh tasks/lee2019_standup/configs/standup.json",
+    "inspect_cmd": "python play/_inspect_env_cfg.py tasks/lee2019_standup/configs/standup.json",
+    "note": "论文 p5：成本 7 项（去掉 c_bi/c_bs/c_c,in，新增 c_h）、目标关节=站姿、初始=near-upright 任意坐姿、终止=只有时间限制；动作/网络与 self-righting 同",
+    "ppo": {
+      "episode_length": 250,
+      "num_envs": 512
+    },
+    "note_p1": "phase1 完成后把检查点目录填进 selfright.json 的 _meta.ckpt 再续训 | 训练侧 episode_length=250 已接上（默认 1000 会让回合变 20s）",
+    "baseline": "lee2019_selfright_p1（2026-11-05 08:34，精简模型，验收未达标）",
+    "pending_decision": null,
+    "experiment_id": "STANDUP-01",
+    "baseline_note": "08:34 的 lee2019_selfright_p1 因误用精简碰撞模型，归类为【预实验 P0 / 配置错误】，不计入正式实验序列；本实验是第一个配置正确的正式训练",
+    "oom_note": "10:09 首次启动用 2048 envs 触发 RESOURCE_EXHAUSTED（HLO 参数 12.93GB > 6.87GB base limit）；诊断确认与几何贴地无关（关闭后仍 OOM），是全碰撞模型本身。2048/1024 均 OOM，512 编译通过；与 9 月 _flip_patched.log 的 NV=512 naconmax=1024 一致",
+    "depends_on": "scripts/_impl_standup.py --apply + 等价性回归 30/30"
+  },
+  "overrides": {
+    "model_xml": "/home/dth15/mujoco/models/cat4.0/scene_selfright_full.xml",
+    "episode_length": 250,
+    "command_config.fixed": [
+      0.0,
+      0.0
+    ],
+    "pert_config.enable": false,
+    "action_config.mode": "delta_current",
+    "action_config.apply_velocity_limit": false,
+    "action_config.delta_scale": 0.25,
+    "obs_config.blocks": [
+      "linvel",
+      "gravity",
+      "gyro",
+      "jpos",
+      "jvel",
+      "jpos_err",
+      "last_act",
+      "last2_act",
+      "last3_act",
+      "motor_targets"
+    ],
+    "noise_config.airborne_gain": 8.0,
+    "reward_config.cost_mode": true,
+    "reward_config.clip_min": -10000.0,
+    "reward_config.terms": [
+      "c_orientation",
+      "c_joint_pos",
+      "c_height",
+      "c_joint_accel",
+      "c_action_diff",
+      "c_joint_speed",
+      "c_torque"
+    ],
+    "reward_config.alpha_o": 1.0,
+    "reward_config.alpha_jp": 0.5,
+    "reward_config.q_sit": [
+      0.979270178,
+      0.774235161,
+      0.078376447,
+      0.979322389,
+      0.774235161,
+      0.076698497,
+      0.97927587,
+      0.774235161,
+      0.078380984,
+      0.97932106,
+      0.774235161,
+      0.076697499
+    ],
+    "task_config.init_mode": "sit",
+    "task_config.terminate_mode": "timeout",
+    "reward_config.scales.c_orientation": 8.0,
+    "reward_config.scales.c_joint_pos": 2.0,
+    "reward_config.scales.c_joint_accel": 0.0005,
+    "reward_config.scales.c_body_impulse": 0.005,
+    "reward_config.scales.c_body_slip": 0.005,
+    "reward_config.scales.c_self_collision": 0.0,
+    "reward_config.scales.c_action_diff": 0.0005,
+    "reward_config.scales.c_joint_speed": 0.005,
+    "reward_config.scales.c_torque": 2e-06,
+    "reward_config.cost_cap": 100.0,
+    "njmax": 64,
+    "naconmax": 1024,
+    "task_config.sit_qpos": [
+      0.979270178,
+      0.774235161,
+      0.078376447,
+      0.979322389,
+      0.774235161,
+      0.076698497,
+      0.97927587,
+      0.774235161,
+      0.078380984,
+      0.97932106,
+      0.774235161,
+      0.076697499
+    ],
+    "task_config.sit_height": 0.0416,
+    "task_config.sit_tilt_max": 0.15,
+    "task_config.sit_joint_noise": 0.08,
+    "task_config.sit_clearance": 0.0,
+    "reward_config.q_target": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "reward_config.height_target": 0.147,
+    "reward_config.scales.c_height": 2.0
+  },
+  "sit_pose_target": "configs/sit_pose_touch.json",
+  "_cost_terms": {
+    "note": "Table II 9 项，r = -Σk·c；权重 k 与 K 核 α 论文未公开，全部自定（S 类）",
+    "approx": [
+      "c_body_impulse 用机身 qacc 平方和代理接触冲量",
+      "c_body_slip 用触地足端水平速度代理接触点速度",
+      "c_self_collision 精简模型仅 10 碰撞 geom，权重设 0；切 full 模型才有意义"
+    ],
+    "kernel": "K(e|α) = -1/(exp(αe)+2+exp(-αe)) ∈ [-0.25,0)；α_o=1.0 / α_jp=0.5（自定，避免大误差饱和）",
+    "bounded": "每项惩罚 min(c, cost_cap=100)，对应论文 p4 bounded cost；防 0.5m 落地帧 Σqacc² 爆炸"
+  },
+  "_implemented": [
+    "reward clip 下界可配（clip_min=-10000）",
+    "cost_mode：reward = -Σk·c（直接映射，未翻成正主奖励）",
+    "fall 初始分布：0.5 m 投落 / 随机单位四元数 / 12 主动关节在 80% jnt_range 内均匀采样",
+    "timeout 终止：env 内永不提前终止，由 EpisodeWrapper 按 episode_length=250 (5 s) 判定",
+    "Table II 9 项成本 + logistic kernel",
+    "obs：jpos_err 段；按 Table I 排除 linvel/cmd/height，50Hz 用 3 拍动作史近似论文 0.05s@400Hz",
+    "TSIF 行为：四脚全离地时放大 linvel 噪声（airborne_gain=8）",
+    "课程学习：selfright_phase1.json（平滑惩罚近 0）→ selfright.json（完整权重）分段续训",
+    "课程：本文件为第 1 阶段；完整权重在 selfright.json",
+    "成本有界化 cost_cap=100（实测修掉落地帧 reward 撞 -10000）",
+    "task.py 几何贴地投落 drop_clearance（默认 -1 关闭，等价性保持）",
+    "全碰撞模型 + njmax64 / naconmax1024（9 月 Cat33Flip 实跑配置）"
+  ],
+  "_verified": [
+    "仅 JSON 语法与 DRY_RUN 解析通过（补丁未执行，环境键 c_height/sit_* 尚未存在）",
+    "_impl_standup.py --check 静态校验 3 处锚点唯一命中"
+  ],
+  "_todo": [
+    "执行 scripts/_impl_standup.py --apply（等 EXP-01 让出 GPU）",
+    "跑 play/_check_lee2019_equiv.py --check 确认 30/30 等价",
+    "CPU 验证 sit 初始姿态：四足/机身是否稳定着地、不穿地",
+    "量算趴姿→站姿的保持力矩是否超出 7.4V 舵机能力（腿几乎水平、力臂最大）",
+    "跑 _inspect_env_cfg.py 确认 obs 93 维、回合 5 s、c_height 生效"
+  ],
+  "_paper_terms": {
+    "note": "论文 p5 II-D：kjpcjp + koco + khch + kaca + kadcad + kjslimcjslim + kτcτ",
+    "self_righting_only": [
+      "c_body_impulse",
+      "c_body_slip",
+      "c_self_collision"
+    ],
+    "standup_only": [
+      "c_height"
+    ],
+    "formula_unpublished": [
+      "c_h 公式与 kh 权重论文均未给出，全部自定（S 类）"
+    ]
+  }
+}

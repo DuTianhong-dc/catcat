@@ -1,0 +1,1 @@
+Checkpoint commit was successful to /home/dth15/mujoco_playground/logs/Cat40Lee2019-20261121-225616-exp15_s2stand_v15/checkpoints/000000655360

@@ -1,0 +1,219 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="cat4.1">
+  <default>
+    <default class="servo">
+      <position kp="15.85" kv="0" forcerange="-2.73 2.73" />
+    </default>
+    <default class="servo_knee">
+      <position kp="57.218500" kv="0" forcerange="-5.187000 5.187000" />
+    </default>
+    <default class="servo_joint">
+      <joint armature="0.027" frictionloss="0.014" damping="0.56" />
+    </default>
+    <default class="servo_knee_joint">
+      <joint armature="0.097470" frictionloss="0.026600" damping="2.021600" />
+    </default>
+  </default>
+  <compiler angle="radian" />
+  <asset>
+    <mesh name="base_link" content_type="model/stl" file="meshes/base_link.STL" />
+    <mesh name="Link1" content_type="model/stl" file="meshes/Link1.STL" />
+    <mesh name="Link3" content_type="model/stl" file="meshes/Link3.STL" />
+    <mesh name="Link4" content_type="model/stl" file="meshes/Link4.STL" />
+    <mesh name="Link2" content_type="model/stl" file="meshes/Link2.STL" />
+    <mesh name="Link5" content_type="model/stl" file="meshes/Link5.STL" />
+    <mesh name="Link6" content_type="model/stl" file="meshes/Link6.STL" />
+    <mesh name="Link7" content_type="model/stl" file="meshes/Link7.STL" />
+    <mesh name="Link10" content_type="model/stl" file="meshes/Link10.STL" />
+    <mesh name="Link8" content_type="model/stl" file="meshes/Link8.STL" />
+    <mesh name="Link9" content_type="model/stl" file="meshes/Link9.STL" />
+    <mesh name="Link11" content_type="model/stl" file="meshes/Link11.STL" />
+    <mesh name="Link12" content_type="model/stl" file="meshes/Link12.STL" />
+    <mesh name="Link15" content_type="model/stl" file="meshes/Link15.STL" />
+    <mesh name="Link13" content_type="model/stl" file="meshes/Link13.STL" />
+    <mesh name="Link14" content_type="model/stl" file="meshes/Link14.STL" />
+    <mesh name="Link16" content_type="model/stl" file="meshes/Link16.STL" />
+    <mesh name="Link17" content_type="model/stl" file="meshes/Link17.STL" />
+    <mesh name="Link20" content_type="model/stl" file="meshes/Link20.STL" />
+    <mesh name="Link18" content_type="model/stl" file="meshes/Link18.STL" />
+    <mesh name="Link19" content_type="model/stl" file="meshes/Link19.STL" />
+    <mesh name="Link21" content_type="model/stl" file="meshes/Link21.STL" />
+    <mesh name="Link22" content_type="model/stl" file="meshes/Link22.STL" />
+    <material name="m_white" rgba="0.82 0.82 0.80 1" roughness="0.9" metallic="0" specular="0" shininess="0" />
+    <material name="m_gray" rgba="0.28 0.28 0.30 1" roughness="0.9" metallic="0" specular="0" shininess="0" />
+    <material name="m_dark" rgba="0.045 0.045 0.05 1" roughness="0.9" metallic="0" specular="0" shininess="0" />
+    <material name="m_black" rgba="0.018 0.018 0.02 1" roughness="0.9" metallic="0" specular="0" shininess="0" />
+    <mesh file="meshes/Link5_hull.STL" />
+    <mesh file="meshes/Link10_hull.STL" />
+    <mesh file="meshes/Link15_hull.STL" />
+    <mesh file="meshes/Link20_hull.STL" />
+  </asset>
+  <worldbody>
+    <body name="base_link" pos="0 0 0" quat="1 0 0 0">
+      <freejoint />
+      <inertial pos="0.030826 -0.002437 0.005617" mass="1.115" fullinertia="0.00122576 0.00447108 0.005404 0.000430093 0.000162502 -1.04942e-05" />
+      <geom pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="base_link" material="m_white" contype="0" conaffinity="0" group="2" />
+      <body name="Link1" pos="-0.16766 -0.06252 0.02772" quat="0.4955653 0.5043938 0.4955693 0.5043937">
+        <inertial pos="0.00277759 0.0002166 -0.0133911" quat="0.486515 0.522281 -0.476679 0.513131" mass="0.144" diaginertia="6.97402e-05 6.7367e-05 1.88944e-05" />
+        <joint name="joint1" range="-1.003 1.003" class="servo_joint" />
+        <joint name="joint1_bl" type="hinge" axis="0 0 1" range="-0.0015708 0.0015708" limited="true" damping="0.01" frictionloss="0" armature="0.01" group="3" />
+        <geom quat="1 0 0 0" type="mesh" mesh="Link1" material="m_gray" contype="0" conaffinity="0" group="2" />
+        <body name="Link2" pos="-0.021723 -0.011578 -0.014735" quat="0.3393755 0.5942434 0.3832452 0.6203406">
+          <inertial pos="-0.0513621 -2.14186e-08 0.00464013" quat="-4.67748e-07 0.708684 -2.15948e-06 0.705526" mass="0.037" diaginertia="3.56346e-05 3.45987e-05 1.20981e-06" />
+          <joint name="joint2" range="-0.585121655361 0.566795650955" class="servo_joint" />
+          <joint name="joint2_bl" type="hinge" axis="0 0 1" range="-0.0015708 0.0015708" limited="true" damping="0.01" frictionloss="0" armature="0.01" group="3" />
+          <geom pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="Link2" material="m_dark" contype="0" conaffinity="0" group="2" />
+          <body name="Link5" pos="-0.099 0 -0.0085" quat="0.9986906 0 0 0.0511575">
+            <inertial pos="-0.00825267 0.0455576 0.0117624" quat="0.473754 0.529943 -0.468597 0.524533" mass="0.03" diaginertia="3.17836e-05 3.02002e-05 2.03425e-06" />
+            <joint name="joint3" range="-0.389001415918 0.483663210079" class="servo_knee_joint" />
+            <joint name="joint3_bl" type="hinge" axis="0 0 1" range="-0.0015708 0.0015708" limited="true" damping="0.01" frictionloss="0" armature="0.01" group="3" />
+            <geom pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="Link5" material="m_black" contype="0" conaffinity="0" group="2" />
+            <geom name="foot_rl" type="sphere" group="3" contype="64" conaffinity="1" rgba="0.3 0.3 0.3 0.4" pos="-0.0201239 0.0906551 0.0117001" size="0.01" />
+            <site name="foot_rl" group="4" rgba="1 1 0 0.5" pos="-0.0201239 0.0906551 0.0117001" size="0.005" />
+            <geom name="Link5_hull" type="mesh" mesh="Link5_hull" group="3" contype="64" conaffinity="1" rgba="0.3 0.3 0.3 0.4" />
+          </body>
+        </body>
+      </body>
+      <body name="Link6" pos="-0.16766 0.06228 0.02772" quat="0.4722696 -0.5262696 0.4722736 -0.5262693">
+        <inertial pos="0.00278529 6.35431e-05 -0.0133911" quat="0.500443 0.508973 -0.490863 0.499556" mass="0.144" diaginertia="6.97402e-05 6.7367e-05 1.88944e-05" />
+        <joint name="joint6" range="-1.003 1.003" class="servo_joint" />
+        <joint name="joint6_bl" type="hinge" axis="0 0 1" range="-0.0015708 0.0015708" limited="true" damping="0.01" frictionloss="0" armature="0.01" group="3" />
+        <geom quat="1 0 0 0" type="mesh" mesh="Link6" material="m_gray" contype="0" conaffinity="0" group="2" />
+        <body name="Link7" pos="-0.022671 0.009631 -0.014735" quat="0.3666825 -0.6108184 0.3562336 -0.6046005">
+          <inertial pos="-0.0513621 -1.94601e-09 0.00464015" quat="-4.95528e-07 0.708684 -1.8368e-06 0.705526" mass="0.037" diaginertia="3.56346e-05 3.45987e-05 1.20982e-06" />
+          <joint name="joint7" range="-0.566795650955 0.585121655361" class="servo_joint" />
+          <joint name="joint7_bl" type="hinge" axis="0 0 1" range="-0.0015708 0.0015708" limited="true" damping="0.01" frictionloss="0" armature="0.01" group="3" />
+          <geom pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="Link7" material="m_dark" contype="0" conaffinity="0" group="2" />
+          <body name="Link10" pos="-0.099 0 -0.0085" quat="0.9975207 0 0 0.07037415">
+            <inertial pos="-0.0189807 -0.0422294 0.0117623" quat="0.582901 0.406654 -0.578104 0.400817" mass="0.03" diaginertia="3.17865e-05 3.02017e-05 2.03569e-06" />
+            <joint name="joint8" range="-0.483663210079 0.389001415918" class="servo_knee_joint" />
+            <joint name="joint8_bl" type="hinge" axis="0 0 1" range="-0.0015708 0.0015708" limited="true" damping="0.01" frictionloss="0" armature="0.01" group="3" />
+            <geom pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="Link10" material="m_black" contype="0" conaffinity="0" group="2" />
+            <geom name="foot_rr" type="sphere" group="3" contype="64" conaffinity="1" rgba="0.3 0.3 0.3 0.4" pos="-0.0413637 -0.0831391 0.0117072" size="0.01" />
+            <site name="foot_rr" group="4" rgba="1 1 0 0.5" pos="-0.0413637 -0.0831391 0.0117072" size="0.005" />
+            <geom name="Link10_hull" type="mesh" mesh="Link10_hull" group="3" contype="64" conaffinity="1" rgba="0.3 0.3 0.3 0.4" />
+          </body>
+        </body>
+      </body>
+      <body name="Link11" pos="0.15074 -0.05752 0.02797" quat="0.5002346 0.4997633 0.5002386 0.4997633">
+        <inertial pos="0.00277309 0.000268122 -0.0133911" quat="0.481731 0.526682 -0.471811 0.517625" mass="0.144" diaginertia="6.97402e-05 6.7367e-05 1.88944e-05" />
+        <joint name="joint11" range="-1.134464014 0.523598776" class="servo_joint" />
+        <joint name="joint11_bl" type="hinge" axis="0 0 1" range="-0.0015708 0.0015708" limited="true" damping="0.01" frictionloss="0" armature="0.01" group="3" />
+        <geom quat="1 0 0 0" type="mesh" mesh="Link11" material="m_gray" contype="0" conaffinity="0" group="2" />
+        <body name="Link12" pos="-0.021504 -0.011979 -0.014735" quat="0.3335918 0.5906533 0.3887546 0.6234695">
+          <inertial pos="-0.0513621 -1.73256e-08 0.00464011" quat="-4.65911e-07 0.708684 -2.15334e-06 0.705526" mass="0.037" diaginertia="3.56346e-05 3.45987e-05 1.20981e-06" />
+          <joint name="joint12" range="-0.585121655361 0.566795650955" class="servo_joint" />
+          <joint name="joint12_bl" type="hinge" axis="0 0 1" range="-0.0015708 0.0015708" limited="true" damping="0.01" frictionloss="0" armature="0.01" group="3" />
+          <geom pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="Link12" material="m_dark" contype="0" conaffinity="0" group="2" />
+          <body name="Link15" pos="-0.099 0 -0.0085" quat="0.9986906 0 0 0.05115694">
+            <inertial pos="-0.00825264 0.0455576 0.0117623" quat="0.473755 0.529944 -0.468595 0.524532" mass="0.03" diaginertia="3.17835e-05 3.02002e-05 2.03426e-06" />
+            <joint name="joint13" range="-0.389001415918 0.483663210079" class="servo_knee_joint" />
+            <joint name="joint13_bl" type="hinge" axis="0 0 1" range="-0.0015708 0.0015708" limited="true" damping="0.01" frictionloss="0" armature="0.01" group="3" />
+            <geom pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="Link15" material="m_black" contype="0" conaffinity="0" group="2" />
+            <geom name="foot_fl" type="sphere" group="3" contype="64" conaffinity="1" rgba="0.3 0.3 0.3 0.4" pos="-0.0201239 0.0906551 0.0117001" size="0.01" />
+            <site name="foot_fl" group="4" rgba="1 1 0 0.5" pos="-0.0201239 0.0906551 0.0117001" size="0.005" />
+            <geom name="Link15_hull" type="mesh" mesh="Link15_hull" group="3" contype="64" conaffinity="1" rgba="0.3 0.3 0.3 0.4" />
+          </body>
+        </body>
+      </body>
+      <body name="Link16" pos="0.15074 0.05728 0.02772" quat="0.4830357 -0.5164055 0.4830397 -0.5164054">
+        <inertial pos="0.00278555 -5.15042e-05 -0.0133911" quat="0.510651 0.498729 -0.501268 0.489117" mass="0.144" diaginertia="6.97402e-05 6.7367e-05 1.88944e-05" />
+        <joint name="joint16" range="-0.523598776 1.134464014" class="servo_joint" />
+        <joint name="joint16_bl" type="hinge" axis="0 0 1" range="-0.0015708 0.0015708" limited="true" damping="0.01" frictionloss="0" armature="0.01" group="3" />
+        <geom quat="1 0 0 0" type="mesh" mesh="Link16" material="m_gray" contype="0" conaffinity="0" group="2" />
+        <body name="Link17" pos="-0.022254 0.010559 -0.014735" quat="0.3541204 -0.6033329 0.3687704 -0.6120435">
+          <inertial pos="-0.0513621 -1.54625e-08 0.00464012" quat="-5.66479e-07 0.708684 -2.11e-06 0.705526" mass="0.037" diaginertia="3.56346e-05 3.45987e-05 1.20981e-06" />
+          <joint name="joint17" range="-0.566795650955 0.585121655361" class="servo_joint" />
+          <joint name="joint17_bl" type="hinge" axis="0 0 1" range="-0.0015708 0.0015708" limited="true" damping="0.01" frictionloss="0" armature="0.01" group="3" />
+          <geom pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="Link17" material="m_dark" contype="0" conaffinity="0" group="2" />
+          <body name="Link20" pos="-0.099 0 -0.0085" quat="0.9711298 0 0 0.2385506">
+            <inertial pos="-0.0320067 -0.0334539 0.0117623" quat="0.64244 0.302704 -0.638703 0.296141" mass="0.03" diaginertia="3.17869e-05 3.0202e-05 2.03576e-06" />
+            <joint name="joint18" range="-0.483663210079 0.389001415918" class="servo_knee_joint" />
+            <joint name="joint18_bl" type="hinge" axis="0 0 1" range="-0.0015708 0.0015708" limited="true" damping="0.01" frictionloss="0" armature="0.01" group="3" />
+            <geom pos="0 0 0" quat="1 0 0 0" type="mesh" mesh="Link20" material="m_black" contype="0" conaffinity="0" group="2" />
+            <geom name="foot_fr" type="sphere" group="3" contype="64" conaffinity="1" rgba="0.3 0.3 0.3 0.4" pos="-0.0667786 -0.0645266 0.0117072" size="0.01" />
+            <site name="foot_fr" group="4" rgba="1 1 0 0.5" pos="-0.0667786 -0.0645266 0.0117072" size="0.005" />
+            <geom name="Link20_hull" type="mesh" mesh="Link20_hull" group="3" contype="64" conaffinity="1" rgba="0.3 0.3 0.3 0.4" />
+          </body>
+        </body>
+      </body>
+      <geom name="base_hull" type="box" group="3" contype="2" conaffinity="1" rgba="0.3 0.3 0.3 0.4" pos="0.0354671 -7.82799e-05 0.00520527" size="0.197663 0.0724 0.0467802" />
+      <site name="imu_mount" group="4" rgba="0 1 0 0.6" pos="0.02133 -0.00094 0.02195" size="0.005" />
+      <camera name="cam_front" pos="0.24663 0 0.05" xyaxes="0 -1 0 0 0 1" fovy="70" />
+      <camera name="cam_top" pos="0 0 1.1" xyaxes="1 0 0 0 1 0" fovy="55" />
+      <camera name="cam_back" pos="-0.6 0 0.4" xyaxes="0 -1 0 0.447 0 0.894" fovy="60" />
+      <camera name="cam_follow" pos="-0.55 -0.45 0.4" xyaxes="0.634 -0.774 0 0.318 0.261 0.911" fovy="55" />
+      <site name="tof_mount" group="4" rgba="0 1 0 0.6" pos="0.23663 0 0.05" quat="0.7071 0 0.7071 0" size="0.005" />
+      <site name="ultrasonic_mount" group="4" rgba="0 1 0 0.6" pos="0.23663 -0.012 0.05" quat="0.7071 0 0.7071 0" size="0.005" />
+    </body>
+  </worldbody>
+  <actuator>
+    <motor joint="joint1" ctrlrange="0 0" forcerange="0 0" />
+    <position name="servo_joint1" joint="joint1" class="servo" ctrlrange="-1.003 1.003" />
+    <position name="servo_joint2" joint="joint2" class="servo" ctrlrange="-0.585121655361 0.566795650955" />
+    <position name="servo_joint3" joint="joint3" class="servo_knee" ctrlrange="-0.389001415918 0.483663210079" />
+    <position name="servo_joint6" joint="joint6" class="servo" ctrlrange="-1.003 1.003" />
+    <position name="servo_joint7" joint="joint7" class="servo" ctrlrange="-0.566795650955 0.585121655361" />
+    <position name="servo_joint8" joint="joint8" class="servo_knee" ctrlrange="-0.483663210079 0.389001415918" />
+    <position name="servo_joint11" joint="joint11" class="servo" ctrlrange="-1.134464014 0.523598776" />
+    <position name="servo_joint12" joint="joint12" class="servo" ctrlrange="-0.585121655361 0.566795650955" />
+    <position name="servo_joint13" joint="joint13" class="servo_knee" ctrlrange="-0.389001415918 0.483663210079" />
+    <position name="servo_joint16" joint="joint16" class="servo" ctrlrange="-0.523598776 1.134464014" />
+    <position name="servo_joint17" joint="joint17" class="servo" ctrlrange="-0.566795650955 0.585121655361" />
+    <position name="servo_joint18" joint="joint18" class="servo_knee" ctrlrange="-0.483663210079 0.389001415918" />
+  </actuator>
+  <contact>
+    <exclude body1="Link5" body2="Link2" />
+    <exclude body1="Link10" body2="Link7" />
+    <exclude body1="Link15" body2="Link12" />
+    <exclude body1="Link20" body2="Link17" />
+    <exclude body1="Link2" body2="base_link" />
+    <exclude body1="Link7" body2="base_link" />
+    <exclude body1="Link12" body2="base_link" />
+    <exclude body1="Link17" body2="base_link" />
+  </contact>
+  <sensor>
+    <framequat name="real_imu_quat" objtype="site" objname="imu_mount" />
+    <gyro name="real_imu_gyro" site="imu_mount" />
+    <accelerometer name="real_imu_acc" site="imu_mount" />
+    <magnetometer name="real_imu_mag" site="imu_mount" />
+    <jointpos name="real_jointpos_1" joint="joint1" />
+    <jointpos name="real_jointpos_2" joint="joint2" />
+    <jointpos name="real_jointpos_3" joint="joint3" />
+    <jointpos name="real_jointpos_6" joint="joint6" />
+    <jointpos name="real_jointpos_7" joint="joint7" />
+    <jointpos name="real_jointpos_8" joint="joint8" />
+    <jointpos name="real_jointpos_11" joint="joint11" />
+    <jointpos name="real_jointpos_12" joint="joint12" />
+    <jointpos name="real_jointpos_13" joint="joint13" />
+    <jointpos name="real_jointpos_16" joint="joint16" />
+    <jointpos name="real_jointpos_17" joint="joint17" />
+    <jointpos name="real_jointpos_18" joint="joint18" />
+    <jointvel name="real_jointvel_1" joint="joint1" />
+    <jointvel name="real_jointvel_2" joint="joint2" />
+    <jointvel name="real_jointvel_3" joint="joint3" />
+    <jointvel name="real_jointvel_6" joint="joint6" />
+    <jointvel name="real_jointvel_7" joint="joint7" />
+    <jointvel name="real_jointvel_8" joint="joint8" />
+    <jointvel name="real_jointvel_11" joint="joint11" />
+    <jointvel name="real_jointvel_12" joint="joint12" />
+    <jointvel name="real_jointvel_13" joint="joint13" />
+    <jointvel name="real_jointvel_16" joint="joint16" />
+    <jointvel name="real_jointvel_17" joint="joint17" />
+    <jointvel name="real_jointvel_18" joint="joint18" />
+    <actuatorfrc name="real_jointtorque_joint1" actuator="servo_joint1" />
+    <actuatorfrc name="real_jointtorque_joint2" actuator="servo_joint2" />
+    <actuatorfrc name="real_jointtorque_joint3" actuator="servo_joint3" />
+    <actuatorfrc name="real_jointtorque_joint6" actuator="servo_joint6" />
+    <actuatorfrc name="real_jointtorque_joint7" actuator="servo_joint7" />
+    <actuatorfrc name="real_jointtorque_joint8" actuator="servo_joint8" />
+    <actuatorfrc name="real_jointtorque_joint11" actuator="servo_joint11" />
+    <actuatorfrc name="real_jointtorque_joint12" actuator="servo_joint12" />
+    <actuatorfrc name="real_jointtorque_joint13" actuator="servo_joint13" />
+    <actuatorfrc name="real_jointtorque_joint16" actuator="servo_joint16" />
+    <actuatorfrc name="real_jointtorque_joint17" actuator="servo_joint17" />
+    <actuatorfrc name="real_jointtorque_joint18" actuator="servo_joint18" />
+    <velocimeter name="local_linvel" site="imu_mount" />
+    <framelinvel name="virt_base_linvel" objtype="site" objname="imu_mount" />
+  </sensor>
+</mujoco>

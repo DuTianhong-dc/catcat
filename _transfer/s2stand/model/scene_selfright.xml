@@ -1,0 +1,36 @@
+<!-- Lee2019 self-righting 专用：仅 4 个髋俯仰 jnt_range 上界 +4°→+29.8°；碰撞配置沿用 robot.xml，未改 -->
+<mujoco model="cat4.1_scene">
+  <!-- cat4.1 场景入口：include 本体 + 环境。加载: python -m mujoco.viewer scene.xml
+       与 cat4.0 的差异见 docs/cat4.1_模型说明.md（只换躯干质量，拓扑不变） -->
+  <include file="robot_selfright.xml"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" cone="pyramidal" iterations="100"/>
+  <visual>
+    <global realtime="1" offwidth="1280" offheight="960"/>
+    <quality shadowsize="4096" numslices="16" offsamples="2"/>
+    <headlight diffuse=".7 .7 .7" ambient=".12 .12 .12" specular=".05 .05 .05" active="1"/>
+    <rgba fog="0 0 0 1" haze="0 1 0 1"/>
+    <map znear="0.005" zfar="30" haze="0"/>
+  </visual>
+  <asset>
+    <texture type="skybox" file="textures/desert.png"
+        gridsize="3 4" gridlayout=".U..LFRB.D.." />
+    <texture name="plane" type="2d" builtin="checker" rgb1=".25 .25 .25" rgb2=".75 .75 .75"
+        width="512" height="512" mark="cross" markrgb=".7 .7 .7" />
+    <material name="plane" reflectance="0.05" texture="plane" texrepeat="1 1" texuniform="true" specular="0.1"/>
+  </asset>
+  <worldbody>
+    <!-- ★ priority=1 是关键：MuJoCo 里 priority 高的 geom 独占决定接触参数
+           （friction/condim/solref/solimp），不再取 max。
+           没有它时 接触摩擦 = max(地面 0.6, 脚球默认 1.0) = 1.0，比 Open Duck 的 0.6 粘 67%。
+           加上后实际接触摩擦 = 0.6，与 scene_flat_terrain.xml 实测一致。 -->
+    <geom name="floor" pos="0 0 0" size="10 10 0.02" type="plane" material="plane"
+        condim="3" priority="1" friction="0.6 0.005 0.0001"/>
+    <light directional="true" ambient=".3 .3 .3" pos="30 30 30" dir="0 -.5 -1"
+        diffuse=".6 .6 .6" specular=".1 .1 .1" />
+  </worldbody>
+  <!-- 零位=设计站姿（帧手术已定），stand keyframe = freejoint 落地 + 12 关节全 0 -->
+  <!-- ctrl 是 13 位：第 0 位是 index 占位空执行器（cat3.4 env 按 ctrl[1:] 取 12 个舵机） -->
+  <keyframe>
+    <key name="stand" qpos="0 0 0.14877684 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" ctrl="0 0 0 0 0 0 0 0 0 0 0 0 0"/>
+  </keyframe>
+</mujoco>
