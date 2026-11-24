@@ -1,31 +1,38 @@
 # 第二网络（s2stand）完整上下文 —— 单文件合订本
 
-> 由 `_transfer/s2stand/` 里的原始文件按固定顺序拼接而成，供网页版智能体一次性读完。生成时间 2026-11-23 18:12。
-> 二进制资产（meshes / textures / .mjz / Orbax 检查点）不在本文件里，见同目录 `model/`、`checkpoints/`。
+> 由 `_transfer/s2stand/` 里 18 份文本按固定顺序拼接，供网页版智能体一次性读完。生成时间 2026-11-23 19:01。
+> 未收入：`code/lee2019/*.py`（8 个源文件，rewards.py 62 KB / defaults.py 42 KB）、`checkpoints/`（Orbax）、`model/`（MJCF+网格+贴图）、`data/*.npz`（起点库）。
 
 ## 合订目录
 
 1. `README.md` — 本包索引（先读）
-2. `docs/交接文档_2026-11-22.md` — 问题现状与证据（最重要）
-3. `docs/任务README.md` — 任务入口 + 论文口径
-4. `docs/实验记录.md` — 逐项对照/参数/验收
-5. `config/exp15_s2stand_v15_运行时配置.json` — v15 实际生效配置
-6. `config/ppo_network_config.json` — PPO 网络结构
-7. `config/standup_exp01_20261105.json` — 旧配方（93 维）
-8. `config/sit_pose_touch.json` — 坐姿触地起点配置
-9. `scripts/_impl_standup.py` — 训练侧补丁
-10. `scripts/_eval_standup.py` — 评估脚本
-11. `model/模型说明.md` — cat4.0 模型说明
+2. `docs/交接文档_2026-11-22.md` — 问题现状与证据（训练前）
+3. `docs/外部诊断_2026-11-24.md` — 外部智能体诊断 + 本包实测回应
+4. `docs/任务README.md` — 任务入口 + 论文口径
+5. `docs/实验记录.md` — 逐项对照/参数/验收
+6. `logs/README.md` — 第 0 步物理基线结论
+7. `logs/pd_anchor_20261124.md` — anchor 全量输出
+8. `logs/pd_delta_20261124.md` — delta 全量输出
+9. `config/exp15_s2stand_v15_运行时配置.json` — v15 实际生效配置
+10. `config/ppo_network_config.json` — PPO 网络结构
+11. `config/standup_exp01_20261105.json` — 旧配方（93 维）
+12. `config/sit_pose_touch.json` — 坐姿触地起点配置
+13. `code/README.md` — 训练侧源码索引
+14. `data/起点库说明.md` — 起点库怎么来的
+15. `scripts/pd_baseline.py` — 第 0 步基线脚本
+16. `scripts/_impl_standup.py` — 11-05 改造清单（历史）
+17. `scripts/_eval_standup.py` — 评估脚本
+18. `model/模型说明.md` — cat4.0 模型说明
 
 ---
 
 
 
-<!-- ===== 1/11  README.md  ===== -->
+<!-- ===== 1/18  README.md  ===== -->
 
 # 【文件 1】README.md
 
-*（本包索引（先读），7468 字节）*
+*（本包索引（先读），10091 字节）*
 
 # 第二网络（s2stand / 站立起身）—— 中转包
 
@@ -49,18 +56,23 @@
 
 | 顺序 | 文件 | 为什么先读它 |
 |---|---|---|
+| 0 | `ALL_IN_ONE.md` | **只想给网页版智能体喂一次**：18 份文本按固定顺序合并成 145 KB 单文件，读完即全貌 |
 | 1 | `README.md`（本文件） | 目录与参数索引 |
 | 2 | `docs/交接文档_2026-11-22.md` | **最关键**：一句话现状、7 版奖励都没突破的证据、已排除的假设 |
 | 3 | `config/exp15_s2stand_v15_运行时配置.json` | 最近一次训练（v15）真正生效的完整配置（26 个顶层键） |
 | 4 | `docs/实验记录.md` | 逐项对照 Lee 2019 论文、自定参数、验收口径 |
 | 5 | `scripts/_impl_standup.py` | 训练侧代码补丁（奖励/终止/起点注入） |
 | 6 | `docs/任务README.md` | 任务目录入口，含旧配方 `standup_exp01` 的口径 |
+| 7 | `code/README.md` → `code/lee2019/*.py` | **v13–v15 实跑的环境/奖励源码**（rewards.py 62 KB 最大） |
+| 8 | `logs/README.md` | **第 0 步物理基线结果**：delta 与绝对锚点的对照实测 |
+| 9 | `docs/外部诊断_2026-11-24.md` | 外部智能体的四条病灶 + 方案，附本包实测回应 |
 
 ## 3. 文件清单
 
 ```
 s2stand/
 ├── README.md                                  本文件
+├── ALL_IN_ONE.md                              ★ 单文件合订本（145 KB，喂网页智能体用）
 ├── docs/
 │   ├── 交接文档_2026-11-22.md                  ★ 问题现状与证据（35 KB）
 │   ├── 任务README.md                           任务入口 + 论文 p5 II-D 原文口径
@@ -71,8 +83,21 @@ s2stand/
 │   ├── standup_exp01_20261105.json             旧配方（obs 93 维，含 linvel 段）
 │   └── sit_pose_touch.json                     坐姿触地起点生成配置
 ├── scripts/
-│   ├── _impl_standup.py                        训练侧补丁（--apply 才生效）
-│   └── _eval_standup.py                        CPU 评估/验收脚本
+│   ├── _impl_standup.py                        11-05 的改造清单（历史，已被后续覆盖）
+│   ├── _eval_standup.py                        CPU 评估/验收脚本
+│   └── pd_baseline.py                          ★ 第 0 步纯 PD 物理基线（anchor/delta 两模式）
+├── code/
+│   ├── README.md                               源码索引 + 先看哪三处
+│   └── lee2019/                                ★ v13–v15 实跑的 8 个 .py（rewards/task/defaults…）
+├── data/
+│   ├── curriculum_mix.npz                      ★ 300 条起点库（near_stand 60/transition 180/original 60）
+│   ├── curriculum_near_trans.npz               240 条近站+过渡子集
+│   ├── qualification.json                      合格候选统计
+│   └── 起点库说明.md                            起点是怎么生成的
+├── logs/
+│   ├── README.md                               ★ 第 0 步结论
+│   ├── pd_anchor_20261124.md/.png              绝对锚点：near_stand 稳住 0.143 m / 力矩 13%
+│   └── pd_delta_20261124.md/.png               delta a≡0：掉到 0.074 m、站住率 0/300
 ├── checkpoints/
 │   ├── 000000327680/                           Orbax 检查点（327,680 步）
 │   └── 000000655360/                           Orbax 检查点（655,360 步）
@@ -106,6 +131,20 @@ s2stand/
 | 网络 | 128 × 128，PPO `lr=3e-4 / entropy 0.002 / γ=0.9988 / clip 0.2 / 16 epochs` |
 | 检查点 | 327,680 步 / 655,360 步（Orbax 目录格式，需 JAX 才能读） |
 
+## 4b. 第 0 步物理基线（2026-11-24 新增）
+
+不跑 RL，只对 300 条起点下发恒定目标，比较两种动作参数化：
+
+| 分组 | 起始 bz | anchor（目标恒为站姿） | delta（`a≡0` 的 delta_current） |
+|---|---|---|---|
+| near_stand | 0.145 | **0.143 / up_z +0.93 / τ 0.35 N·m** | **0.074 / up_z +0.70 / τ 0.05 N·m** |
+| transition | 0.120 | 0.102 / +0.31 | 0.069 / +0.55 |
+| original | 0.092 | 0.087 / +0.05 | 0.073 / +0.11 |
+| 站住率 | — | **117/300 = 39%** | **0/300 = 0%** |
+
+结论：**`delta_current` 在 `a=0` 时确实没有抗重力力矩，8 s 内塌 7.1 cm；换成绝对锚点则稳站且力矩富余 87%。**
+执行器、`kp/kv`、`τ_max` 都不是瓶颈，也不需要靠"零阻尼震荡"来解释。详见 `logs/README.md`。
+
 ## 5. 现状（截至 2026-11-22）
 
 - 从**接近站姿**的起点能站住约 1–3 s（最好一条连续 2.9 s）；
@@ -115,6 +154,8 @@ s2stand/
 - 换了 **7 版奖励结构**（v9–v15）没有突破，怀疑问题在"目标函数结构 + 动作参数化"，不在超参。
 
 > 结论性判断都在 `docs/交接文档_2026-11-22.md` 的 §6，请以那里为准；本文件只做导航。
+> 2026-11-24 追加：`docs/外部诊断_2026-11-24.md` 的四条病灶中，第 1 条被第 0 步实测**证实**，
+> "kv=0 零阻尼震荡"这一附带判断**不成立**（`dof_damping` 实为 0.56/2.02）。
 
 ## 6. 读这份包时要注意的几处坑
 
@@ -139,11 +180,11 @@ s2stand/
 | 交接文档 | `Desktop/s2站立网络_问题交接_2026-11-22.md` | 2026-11-22 03:20 |
 
 
-<!-- ===== 2/11  docs/交接文档_2026-11-22.md  ===== -->
+<!-- ===== 2/18  docs/交接文档_2026-11-22.md  ===== -->
 
 # 【文件 2】docs/交接文档_2026-11-22.md
 
-*（问题现状与证据（最重要），35976 字节）*
+*（问题现状与证据（训练前），35976 字节）*
 
 # 四足机器猫「第二网络（站立/起身）」训练问题交接
 
@@ -707,9 +748,88 @@ walk 是绝对锚点），这会引入切换瞬态。你更倾向"单网全包"�
 > 物理层面没有硬约束（力矩、限位、摩擦都够），5 秒/25 拍的验收口径本身也在扭曲优化目标。
 
 
-<!-- ===== 3/11  docs/任务README.md  ===== -->
+<!-- ===== 3/18  docs/外部诊断_2026-11-24.md  ===== -->
 
-# 【文件 3】docs/任务README.md
+# 【文件 3】docs/外部诊断_2026-11-24.md
+
+*（外部智能体诊断 + 本包实测回应，6544 字节）*
+
+# 外部诊断（2026-11-24，网页版智能体）
+
+> 来源：用户把本包的 `docs/交接文档_2026-11-22.md`、`scripts/_impl_standup.py`、`ALL_IN_ONE.md`
+> 交给一个网页版智能体通读后，它给出的诊断与方案。**原文照录，未经核实**；
+> 标为"本包实测回应"的段落是本地仿真验证的结果（见 `../logs/README.md`）。
+> 保留它的价值：这是一份结构完整、可直接执行的假设清单，后续每改一处都能回来对照。
+
+---
+
+## 原文
+
+我已经通读了 `_transfer/s2stand` 里的 `交接文档_2026-11-22.md`、`_impl_standup.py` 和 `ALL_IN_ONE.md`。
+
+结合 v13–v15 的高度曲线、v14 奖励账本和 v15 的退化现象，可以比较明确地判断：**策略不是"学不会"，而是被当前控制接口、终止条件和奖励盆地联手推向了"躺平最优解"。**
+
+### 一、从日志与脚本反推的 4 个核心病根
+
+1. **`delta_current` + `kv=0` + 高探索噪声造成"重理单向下沉棘轮"（最核心）**
+   当前动作映射为 m_t = clamp(q_t + 0.25 a_t)，且关节 PD kv=0。这意味着策略输出 a_t=0 时，PD 目标角等于当前角，**稳态抗重力力矩为 0**。
+   要撑住 1.959 kg 机身，网络每一拍都必须精准输出非零偏置来抵消重力；而当前稳态探索方差 σ≈0.69（每拍 ±0.17 rad 抖动），只要某一拍少给了一点，重力把腿压弯后 q_{t+1} 下移，下一拍基准点跟着下移，形成正反馈塌缩。
+   这直接解释了 v14 近站组高度从 0.145 m 单调掉到 0.091 m、三代 checkpoint 全程峰值从未举过起点高度的现象。相比之下，walk 用绝对锚点 q_stand + a_t·scale，零动作天然产生回弹抗重力力矩，稳定得多。
+
+2. **`stand_fall` 锁存终止 + 纯正奖励，反向惩罚了"尝试起身"（交接文档里容易忽略的隐蔽坑）**
+   在纯正奖励（clip_min=0）且 γ=0.9988 的设置下，**活满 250 拍就是最大收益**。
+   当前 `stand_fall` 的逻辑是：曾满足 up_z>0.85 且 bz>0.10 后再跌落才提前终止。结果变成：**一直趴在 0.05–0.08 m 永远不触发锁存，稳活 250 拍白嫖未站档分数；一旦尝试抬身冲过 0.10 m 站不稳，就会提前终止，丢掉后面 200 拍的全部奖励。**
+   这正是 v15 的 eval 奖励涨到 15.86、回合步数涨到 237，而 655k 物理达标率反而归零、末态高度跌到 0.052 m 的直接推手。
+
+3. **奖励函数制造了高薪"躺平盆地"且缺少持续高度梯度**
+   v14：c_height=0，c_height_delta 是一次性棘轮；占总奖励 59% 的 c_stab 从 0.075 m 就开始给分，加上 c_joint_pos 的 logistic 核在 0.4–1.2 rad 饱和平顶、三足参考面积按 0.5×Aref 计算，策略"压低叉腿/翘单腿"性价比远高于站直。
+   v15：未站档中 r_slip（脚不动就拿满正分）叠加 r_upz（趴平也 up_z≈1.0）形成稳定盆地，加上 5 档阶梯门控在未达标前梯度断层，策略直接锁死在两足/机身躺平。
+
+4. **训练样本极度稀疏（1M 步摊给 300 条异构起点）**
+   总步数 983,040、单回合 250 步，总共只跑了约 3,932 个回合，平摊到 300 条跨度极大（近站/过渡/趴/侧/仰）的起点，每条起点平均只采样 ~13 次。在无足端接触感知（ablate_contact=true）和无力矩感知（ablate_tau=true）下，不同起点的梯度互相拉扯，很难在 1M 步内同时收敛。
+
+### 二、按「信息量 / 成本」排序的下一步方案
+
+| 顺序 | 改动点 | 具体做法与理由 |
+|---|---|---|
+| **0（先跑）** | 纯 PD 物理基线测试 | 不跑 RL，对近站/过渡/趴姿起点下发恒定目标 q_stand，验证 kp=15.85/57.22、kv=0、τ_max=2.73/5.19 物理上能否撑住、会不会因零阻尼剧烈震荡 |
+| **1（最优先）** | 动作参数化 | 放弃纯 delta_current，改为与 walk 统一的绝对锚点 m_t = clamp(q_stand + scale·a_t, 限位)，同时打开 log_training_metrics=True |
+| **2** | 拆课程先攻近站 | 第一阶段只用 60 条近站起点，先做到 physical_stand > 85% 且 5 秒末高度不掉；跑通后再热启动加过渡组，并用 p1 真实滚出的落点替换离线拼接趴姿 |
+| **3** | 去锁存终止 + 极简乘积奖励 | 去掉 stand_fall 锁存提前终止，γ 从 0.9988 调到 0.99；奖励精简为 2 个无盆地正项 + 极小平滑项，删掉"脚不动给正分"的 r_slip |
+| **4** | 探索方差 & 边界 & 验收 | entropy_cost 0.002→5e-4；回合缩到 150 拍（3 s）；验收补末 1 秒平均高度、净抬升量 Δbz、最长连续 hold 分位数、四足接触占比 |
+
+**Q1 推荐的极简无盆地奖励结构**：
+
+- 核心起身项（持续高度与姿态乘积，趴平严格为 0）：
+  r_stand = clip((up_z − 0.5)/0.5, 0, 1)² · clip((bz − 0.075)/(0.1473 − 0.075), 0, 1)
+- 姿态与四足着地项（乘在高度资格 r_h 上）：
+  r_pose_foot = r_h · (0.5·exp(−(2.0/12)‖q − q_stand‖²) + 0.5·n_contact/4)
+- 平滑项：保留极小的动作变化与关节加速度惩罚，不再给任何"静止/不滑移"发正奖励。
+
+### 三、还需要补充的资料
+
+1. 当前 v14/v15 实际生效的 `rewards.py` 与环境 `step()` 代码（仓库里的 `_impl_standup.py` 是 11-05 的早期补丁）
+2. 上面"第 0 步纯 PD 基线测试"的结果
+3. 如果有 TensorBoard 导出数据或训练终端日志（policy std σ、value loss、approx KL）
+
+---
+
+## 本包实测回应（2026-11-24，本地仿真）
+
+| 原文条目 | 实测结果 | 判定 |
+|---|---|---|
+| 第 1 条：delta + a=0 无抗重力力矩，重力单向下沉 | near_stand 组 8 s：**0.145 → 0.074 m**，力矩仅 0.05 N·m，站住率 **0/300**；同起点改绝对锚点则 **0.143 m / up_z 0.93 / 0.35 N·m（13%）/ 117-300 站住** | **成立**，且量级很大 |
+| 第 1 条附带：`kv=0` 导致零阻尼震荡 | 模型 `dof_damping = 0.56/0.56/2.02`（不是 0）；两种模式末段角速度均 ≈0.00–0.01 rad/s | **不成立**（原文把 kp/kv 与 `dof_damping` 混了） |
+| 第 0 步的物理可行性 | anchor 下 near_stand 稳站 8 s，力矩只用 13%，富余 87% | **物理与执行器不是瓶颈** |
+| 资料 1：实际生效的 rewards/step 代码 | 已补 `code/lee2019/*.py`（8 个文件，v13–v15 实跑版本） | 已提供 |
+| 资料 3：TB 日志 / 训练终端日志 | v9–v15 **没有任何 `events.out.tfevents*`**，日志目录只有 checkpoints + config | **不存在，无法提供** |
+
+复现方式见 `../logs/README.md`。
+
+
+<!-- ===== 4/18  docs/任务README.md  ===== -->
+
+# 【文件 4】docs/任务README.md
 
 *（任务入口 + 论文口径，4671 字节）*
 
@@ -797,9 +917,9 @@ python tasks/lee2019_standup/scripts/_eval_standup.py <实验目录>
    EXP-01 已出现长时间无进度输出；本配方已把步数压到 1M，仍可能要数小时。
 
 
-<!-- ===== 4/11  docs/实验记录.md  ===== -->
+<!-- ===== 5/18  docs/实验记录.md  ===== -->
 
-# 【文件 4】docs/实验记录.md
+# 【文件 5】docs/实验记录.md
 
 *（逐项对照/参数/验收，7813 字节）*
 
@@ -913,9 +1033,113 @@ Height Estimator (真机): 用 gravity/joint/误差史 回归 base height
 - 同时生成 `../lee2019_selfright/configs/exp01_short.json`（400k 步），供 EXP-01 卡住时快速重开。
 
 
-<!-- ===== 5/11  config/exp15_s2stand_v15_运行时配置.json  ===== -->
+<!-- ===== 6/18  logs/README.md  ===== -->
 
-# 【文件 5】config/exp15_s2stand_v15_运行时配置.json
+# 【文件 6】logs/README.md
+
+*（第 0 步物理基线结论，3114 字节）*
+
+# 第 0 步 物理基线：纯 PD 能不能撑住
+
+> 2026-11-24 18:5x 用 `../scripts/pd_baseline.py` 跑的，纯 CPU、无 RL、无训练。
+> 目的是回答外部诊断的第一条假设：**"delta_current + a=0 → 稳态抗重力力矩为 0 → 重力单向下沉棘轮"**。
+> **结论：这条成立，而且差得很远**——同一批起点，只换参数化，站住率从 39% 变成 0%。
+
+## 设置
+
+- 模型 `model/scene_selfright_full_v2.xml`；`kp=15.85/15.85/57.22`、`kv=0.56/0.56/2.02`（`dof_damping`，不是 0）、`τ_max=2.73/2.73/5.19 N·m`
+- 起点库 `data/curriculum_mix.npz` 全部 **300 条**（near_stand 60 / transition 180 / original 60）
+- 每拍重写 ctrl，50 Hz × 8 s，物理 500 Hz（每拍 10 子步）
+- 两种模式：
+  - **anchor**：`ctrl = q_stand = 0`（绝对锚点参数化）
+  - **delta**：`ctrl = 当前关节角`（`delta_current` 下 `a≡0` 的等价物）
+
+## 结果
+
+| 分组 | n | 起始 bz | anchor 末态 bz / up_z | **delta 末态 bz / up_z** |
+|---|---|---|---|---|
+| near_stand | 60 | 0.145 | **0.143 / +0.93** | **0.074 / +0.70** |
+| transition | 180 | 0.120 | 0.102 / +0.31 | 0.069 / +0.55 |
+| original | 60 | 0.092 | 0.087 / +0.05 | 0.073 / +0.11 |
+| **站住率（bz>0.12 且 up_z>0.8）** | 300 | — | **117/300 = 39%** | **0/300 = 0%** |
+
+力矩占用（p95）与震荡：
+
+| 模式 | τ p95 | 顶满 τ_max 比例 | 末段关节角速度 |
+|---|---|---|---|
+| anchor | 0.26–0.35 N·m（10–13%） | 0.6–0.9% | 0.00 rad/s |
+| delta | 0.02–0.05 N·m（≈1%） | 0.0% | 0.01 rad/s |
+
+## 三点判读
+
+1. **delta 的 a≡0 确实没有任何抗重力力矩**：near_stand 组 8 s 内从 0.145 掉到 0.074（−7.1 cm），
+   全程力矩只有 0.05 N·m，等于自由下沉。→ 外部诊断第 1 条被物理仿真直接证实。
+2. **anchor 能稳稳撑住，而且力矩富余 87%**：0.143 m（只掉 2 mm）、up_z 0.93、0.35 N·m。
+   → 执行器、`kp/kv`、`τ_max` 都不是瓶颈；"站不住"不是物理能力问题。
+3. **不震荡**：两种模式末段角速度都 ≈0。`kv` 实际是 0.56/2.02（我最初看错的 0.01 是取错了索引），
+   阻尼够用 → 外部诊断里"零阻尼剧烈震荡"这一条不成立。
+
+## 复现
+
+```bash
+python scripts/pd_baseline.py --mode anchor --sec 8 --md logs/pd_anchor_20261124.md --png logs/pd_anchor_20261124.png
+python scripts/pd_baseline.py --mode delta  --sec 8 --md logs/pd_delta_20261124.md  --png logs/pd_delta_20261124.png
+```
+
+原始输出：`pd_anchor_20261124.md` / `pd_delta_20261124.md`；曲线图：同名 `.png`（每组合最多画 12 条）。
+
+## 这次没回答的
+
+- transition / original 两组在两种模式下都站不住 —— 它们本来就需要主动起身动作，PD 基线不能用来判优劣。
+- 噪声（`noise_config.level=1.0`）与探索方差对"棘手轮"的放大作用：本测试是确定性零动作，没有采样噪声。
+- 第 0 步只验证了"a≡0 时会发生什么"，没有验证"策略在训练中是否真的走这条退化路径"，后者要看 v14/v15 的日志（本包没有 TB 事件文件）。
+
+
+<!-- ===== 7/18  logs/pd_anchor_20261124.md  ===== -->
+
+# 【文件 7】logs/pd_anchor_20261124.md
+
+*（anchor 全量输出，924 字节）*
+
+# 第 0 步 物理基线 · anchor（目标恒为站姿 q_stand=0）（300 条起点，8 s）
+
+模型 `model/scene_selfright_full_v2.xml`，anchor（目标恒为站姿 q_stand=0）；`kp=[15.85, 15.85, 57.22]`、`kv=[0.56, 0.56, 2.0216]`、`τ_max=[2.73, 2.73, 5.19] N·m`。
+
+| 分组 | n | 起始 bz | 末态 bz | 末态 up_z | 力矩 p95 | 顶满比例 | 末段角速度 |
+|---|---|---|---|---|---|---|---|
+| near_stand | 60 | 0.145 | 0.143 | +0.93 | 0.35 | 0.6% | 0.00 rad/s |
+| transition | 180 | 0.120 | 0.102 | +0.31 | 0.26 | 0.9% | 0.00 rad/s |
+| original | 60 | 0.092 | 0.087 | +0.05 | 0.26 | 0.9% | 0.00 rad/s |
+
+**站住（bz>0.12 且 up_z>0.8）**: 117/300 = 39%
+
+判读：near_stand 组若大面积站不住，且 `顶满比例` 高 → 力矩不够；若 `顶满比例` 低但高度掉 → 目标角不产生抗重力偏置（delta 参数化 + kv=0 的锅）；若 `末段角速度` 大 → 无阻尼震荡。
+
+
+<!-- ===== 8/18  logs/pd_delta_20261124.md  ===== -->
+
+# 【文件 8】logs/pd_delta_20261124.md
+
+*（delta 全量输出，947 字节）*
+
+# 第 0 步 物理基线 · delta（目标=当前角，a≡0 的 delta_current）（300 条起点，8 s）
+
+模型 `model/scene_selfright_full_v2.xml`，delta（目标=当前角，a≡0 的 delta_current）；`kp=[15.85, 15.85, 57.22]`、`kv=[0.56, 0.56, 2.0216]`、`τ_max=[2.73, 2.73, 5.19] N·m`。
+
+| 分组 | n | 起始 bz | 末态 bz | 末态 up_z | 力矩 p95 | 顶满比例 | 末段角速度 |
+|---|---|---|---|---|---|---|---|
+| near_stand | 60 | 0.145 | 0.074 | +0.70 | 0.05 | 0.0% | 0.01 rad/s |
+| transition | 180 | 0.120 | 0.069 | +0.55 | 0.02 | 0.0% | 0.01 rad/s |
+| original | 60 | 0.092 | 0.073 | +0.11 | 0.02 | 0.0% | 0.01 rad/s |
+
+**站住（bz>0.12 且 up_z>0.8）**: 0/300 = 0%
+
+判读：near_stand 组若大面积站不住，且 `顶满比例` 高 → 力矩不够；若 `顶满比例` 低但高度掉 → 目标角不产生抗重力偏置（delta 参数化 + kv=0 的锅）；若 `末段角速度` 大 → 无阻尼震荡。
+
+
+<!-- ===== 9/18  config/exp15_s2stand_v15_运行时配置.json  ===== -->
+
+# 【文件 9】config/exp15_s2stand_v15_运行时配置.json
 
 *（v15 实际生效配置，14190 字节）*
 
@@ -1438,18 +1662,18 @@ Height Estimator (真机): 用 gravity/joint/误差史 回归 base height
 }
 
 
-<!-- ===== 6/11  config/ppo_network_config.json  ===== -->
+<!-- ===== 10/18  config/ppo_network_config.json  ===== -->
 
-# 【文件 6】config/ppo_network_config.json
+# 【文件 10】config/ppo_network_config.json
 
 *（PPO 网络结构，864 字节）*
 
 {"action_size": 12, "network_factory_kwargs": {"activation": "silu", "distribution_type": "tanh_normal", "init_noise_std": 0.35, "mean_clip_scale": null, "mean_kernel_init_fn": null, "mean_kernel_init_kwargs": null, "noise_std_type": "scalar", "num_quantiles": 32, "policy_hidden_layer_sizes": [128, 128], "policy_network_kernel_init_fn": "lecun_uniform", "policy_network_kernel_init_kwargs": null, "policy_obs_key": "state", "state_dependent_std": false, "use_distributional_critic": false, "value_hidden_layer_sizes": [128, 128], "value_network_kernel_init_fn": "lecun_uniform", "value_network_kernel_init_kwargs": null, "value_obs_key": "privileged_state"}, "normalize_observations": true, "observation_size": {"privileged_state": {"shape": [152], "dtype": "unserializable object: float32"}, "state": {"shape": [90], "dtype": "unserializable object: float32"}}}
 
 
-<!-- ===== 7/11  config/standup_exp01_20261105.json  ===== -->
+<!-- ===== 11/18  config/standup_exp01_20261105.json  ===== -->
 
-# 【文件 7】config/standup_exp01_20261105.json
+# 【文件 11】config/standup_exp01_20261105.json
 
 *（旧配方（93 维），7131 字节）*
 
@@ -1633,9 +1857,9 @@ Height Estimator (真机): 用 gravity/joint/误差史 回归 base height
 }
 
 
-<!-- ===== 8/11  config/sit_pose_touch.json  ===== -->
+<!-- ===== 12/18  config/sit_pose_touch.json  ===== -->
 
-# 【文件 8】config/sit_pose_touch.json
+# 【文件 12】config/sit_pose_touch.json
 
 *（坐姿触地起点配置，2663 字节）*
 
@@ -1738,11 +1962,278 @@ Height Estimator (真机): 用 gravity/joint/误差史 回归 base height
 }
 
 
-<!-- ===== 9/11  scripts/_impl_standup.py  ===== -->
+<!-- ===== 13/18  code/README.md  ===== -->
 
-# 【文件 9】scripts/_impl_standup.py
+# 【文件 13】code/README.md
 
-*（训练侧补丁，9377 字节）*
+*（训练侧源码索引，2482 字节）*
+
+# 训练侧实际生效的源码（cat40/lee2019 环境）
+
+> 来源：WSL `~/mujoco_playground/mujoco_playground/_src/locomotion/cat40/lee2019/`，
+> 于 2026-11-23 18:55 原样复制。**这是 v13–v15 训练时真正跑的那份代码**，
+> 不是 11-05 的 `scripts/_impl_standup.py` 补丁（那个只是当时的改造清单，内容早已被覆盖）。
+> 已排除：`*.bak_*`（各轮改造的历史备份，共 10 余份）、`__pycache__`。
+
+## 文件
+
+| 文件 | 字节 | 最后修改 | 作用 |
+|---|---|---|---|
+| `task.py` | 16,597 | 11-20 09:07 | 环境主体：`reset()` 起点注入、`termination()` 三种终止模式 |
+| `rewards.py` | 62,081 | 11-21 06:05 | 全部奖励/成本项实现（`TERM_SPECS` / `COST_TERMS` / `_term_*` 函数） |
+| `defaults.py` | 42,556 | 11-21 11:46 | 配置默认值与全部调参键（v14 门控、v15 五段课程都在这里的 reward_config） |
+| `obs.py` | 8,035 | 11-19 22:49 | 观测拼装（9 段 = 90 维） |
+| `action.py` | 3,906 | 11-21 11:40 | 动作映射（`delta_current` / `per_side`） |
+| `networks.py` | 2,220 | 11-04 07:57 | 128×128 网络定义 |
+| `dr.py` | 4,177 | 11-11 02:18 | 域随机化 |
+| `__init__.py` | 254 | 11-08 02:47 | 包导出 |
+
+## 读代码时先看这三处
+
+1. **`task.py:164 termination()`**：`terminate_mode` 三选一（`fall` / `timeout` / `stand_fall`）。
+   `stand_fall` 是 v13 加的**锁存式**：只有 `info["stand_latch"]`（本回合曾站正且 bz>0.10）为真之后，
+   掉到 `up_z<0.65` 或 `bz<0.06` 才终止；**没站起来过的回合永不提前终止**。
+2. **`rewards.py:15 TERM_SPECS` / `:88 COST_TERMS`**：奖励项注册表；每轮的开关与权重来自
+   `defaults.py` 的 `reward_config`（v15 实际值见 `../config/exp15_s2stand_v15_运行时配置.json`）。
+3. **`action.py`**：`delta_current` 的 `m_t = clamp(q_t + 0.25·a_t)` 就实现在这里，
+   与 `../scripts/pd_baseline.py` 的 delta 模式一一对应（后者是它的零动作特例）。
+
+## 与仓库其它部分的关系
+
+- 训练配置：`../config/exp15_s2stand_v15_运行时配置.json`（运行时 dump，权威）
+- 起点库：`../data/curriculum_mix.npz`（300 条，`group` 分 near_stand / transition / original）
+- 模型：`../model/scene_selfright_full_v2.xml`
+- 检查点：`../checkpoints/000000327680` / `000000655360`（Orbax 格式）
+- 训练入口：WSL `~/mujoco_playground/learning/train_jax_ppo.py`（未随包复制；如需可另取）
+
+
+<!-- ===== 14/18  data/起点库说明.md  ===== -->
+
+# 【文件 14】data/起点库说明.md
+
+*（起点库怎么来的，2059 字节）*
+
+# 第二网络训练前准备（2026-11-17）
+
+本次没有启动训练，未改动生效中的训练配置。
+
+已完成：
+- 修正稳定/面积奖励交叉门控，交叉时不给几何满分；仅在对应reward模式开启时改变稳定判断，保护旧模式。
+- 原奖励文件已在同目录按时间备份。
+- 修正CPU评估起点随坡度旋转，保持原有stand统计供对照。
+- 新增physical_stand：正立、高度达标、至少三足真实接触、腹部不接地、角速度低于0.5rad/s，连续25拍（0.5秒）。这是工程初始阈值。
+- 完整模型生成240个合法候选：177近站姿、63过渡；检查有限值、接触穿透、姿态和真实触地。transition只是状态分组，尚不代表从该点一定能恢复。
+- qualified_starts.npz：全部合格候选；regression_starts.npz：24个固定开发复测起点；curriculum_mix.npz：180过渡+60近站姿+60原训练起点，兼容现有均匀抽样loader。最终验收集未混入训练库。
+- prepare_s2_curriculum.py可重新生成上述产物，全程CPU且不会调用训练。
+
+验证：
+- 奖励门控公式取边界和中间值检查通过，修改后Python语法检查通过。
+- 真实BraxAutoResetWrapper的轻量环境检查通过：两个连续终止回合后，full_reset=True将高度/姿态峰值与动作历史归零；False保留跨回合累积。此检查验证wrapper机制，不宣称已完成完整MJX环境reset对拍。
+- 修正后的CPU评估4回合烟测通过，结果位于父目录eval_s2_pretrain_alignment_20261117.json。该烟测只检查运行链路，不作为性能结论。
+
+当前边界：
+- 尚未接通自动课程调度，不自动更换训练起点。60/20/20是候选比例，未通过训练验证。
+- 没有擅自增加高度奖励或改动c_fall权重；这两项需要先在正负轨迹上审计，避免一次修改过多原因不明。
+- 多critic和上拉辅助仍是后续选项，没有加入当前代码。
+- 旧的历史评估保留原样，新坡度口径的结果不直接与旧结果混合。
+
+
+<!-- ===== 15/18  scripts/pd_baseline.py  ===== -->
+
+# 【文件 15】scripts/pd_baseline.py
+
+*（第 0 步基线脚本，8903 字节）*
+
+# -*- coding: utf-8 -*-
+r"""pd_baseline.py —— 第 0 步物理基线：不跑 RL，只下发恒定站姿目标，看纯 PD 能不能撑住。
+
+背景（外部诊断 2026-11-24 第 0 条）：s2stand 用 delta_current，a=0 时目标角 = 当前角，
+稳态抗重力力矩为 0；且模型 kv=0（无阻尼）。若纯 PD 连 near_stand 都撑不住，
+那"站不住"就不是策略问题，而是执行器/参数问题，先修物理再谈奖励。
+
+做法：对起点库每一条 qpos，ctrl 恒为 0（= 站姿，CAT_POSE_DEF 全 0），
+      跑 T 秒，统计机身高度、up_z、关节力矩占额、角度抖动。
+
+用法:
+  python pd_baseline.py                 # 全 300 条
+  python pd_baseline.py --n 30 --sec 3
+"""
+import argparse
+import io
+import os
+import sys
+
+import numpy as np
+import mujoco
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+PKG = os.path.dirname(HERE)
+MODEL = os.path.join(PKG, "model", "scene_selfright_full_v2.xml")
+BANK = os.path.join(PKG, "data", "curriculum_mix.npz")
+J = ["joint1", "joint2", "joint3", "joint6", "joint7", "joint8",
+     "joint11", "joint12", "joint13", "joint16", "joint17", "joint18"]
+FEET = ["foot_rr", "foot_rl", "foot_fr", "foot_fl"]
+CTRL_DT, NSUB = 0.02, 10
+
+
+def feet_down(m, d, thr=0.005):
+    z = [float(d.site_xpos[mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, n)][2]) for n in FEET]
+    return sum(1 for v in z if v < thr), z
+
+
+def run_one(m, q0, nstep, vadr, jadr_now, ctrl_q, foot_ids, delta=False):
+    d = mujoco.MjData(m)
+    d.qpos[:] = q0
+    d.qvel[:] = 0.0
+    d.ctrl[:] = 0.0
+    mujoco.mj_forward(m, d)
+    bz, upz, tau, qv, nfeet = [], [], [], [], []
+    for k in range(nstep):
+        d.ctrl[0] = 0.0
+        if delta:                       # a≡0 的 delta_current：目标角 = 当前角（无重力补偿）
+            d.ctrl[1:13] = np.asarray(d.qpos)[jadr_now]
+        else:                           # 绝对锚点：目标角恒为站姿
+            d.ctrl[1:13] = ctrl_q
+        for _ in range(NSUB):
+            mujoco.mj_step(m, d)
+        qp = np.asarray(d.qpos)
+        bz.append(float(qp[2]))
+        upz.append(float(1.0 - 2.0 * (qp[4] ** 2 + qp[5] ** 2)))
+        tau.append(np.abs(np.asarray(d.actuator_force)[1:13]).copy())
+        qv.append(np.abs(np.asarray(d.qvel)[vadr]).copy())
+        nfeet.append(sum(1 for s in foot_ids if d.site_xpos[s][2] < 0.005))
+    return (np.array(bz), np.array(upz), np.array(tau), np.array(qv), np.array(nfeet))
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--n", type=int, default=0, help="只跑前 N 条（0=全部）")
+    ap.add_argument("--sec", type=float, default=5.0)
+    ap.add_argument("--md", default=None)
+    ap.add_argument("--png", default=None)
+    ap.add_argument("--mode", default="anchor", choices=("anchor", "delta"),
+                    help="anchor=目标恒为站姿(绝对锚点) / delta=目标=当前角(a≡0 的 delta_current)")
+    a = ap.parse_args()
+    delta = (a.mode == "delta")
+
+    m = mujoco.MjModel.from_xml_path(MODEL)
+    g = lambda n: mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, n)
+    bad = [n for n in J if g(n) < 0]
+    if bad:
+        raise SystemExit("模型里找不到关节 %s" % bad)
+    jadr = np.array([m.jnt_qposadr[g(n)] for n in J], dtype=int)
+    vadr = np.array([m.jnt_dofadr[g(n)] for n in J], dtype=int)
+    foot_ids = [mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, n) for n in FEET]
+    trange = np.abs(np.asarray(m.actuator_forcerange)[1:13, 0])   # 每关节力矩上限 (N·m)
+    kv = np.asarray(m.dof_damping)[vadr]
+
+    z = np.load(BANK, allow_pickle=True)
+    Q, GRP = np.asarray(z["qpos"], float), np.asarray(z["group"])
+    if a.n:
+        Q, GRP = Q[:a.n], GRP[:a.n]
+    nstep = int(a.sec / CTRL_DT)
+    ctrl_q = np.zeros(12)                      # = 站姿（CAT_POSE_DEF 全 0）
+
+    print("模型 %s" % os.path.basename(MODEL))
+    print("  kp=%s  force=%s  dof_damping(kv)=%s" %
+          (np.round(np.asarray(m.actuator_gainprm)[1:4, 0], 2),
+           np.round(trange[:3], 2), np.round(kv[:3], 4)))
+    print("起点 %d 条，恒定目标 q_stand=0，跑 %.0f s\n" % (len(Q), a.sec))
+
+    rows = []
+    curves = {}
+    for i, q0 in enumerate(Q):
+        bz, upz, tau, qv, nf = run_one(m, q0, nstep, vadr, jadr, ctrl_q, foot_ids, delta)
+        sat = float((tau > trange * 0.999).mean())
+        rows.append(dict(
+            grp=str(GRP[i]), bz0=bz[0], bz_end=bz[-1], bz_min=bz.min(),
+            upz_end=upz[-1], upz_min=upz.min(),
+            tau_p95=float(np.percentile(tau, 95)), tau_max=float(tau.max()),
+            sat=sat, qv_end=float(qv[-50:].mean()), nf_end=int(nf[-1])))
+        if str(GRP[i]) not in curves:
+            curves[str(GRP[i])] = []
+        if len(curves[str(GRP[i])]) < 12:
+            curves[str(GRP[i])].append(bz)
+        if (i + 1) % 60 == 0:
+            print("  %d/%d" % (i + 1, len(Q)))
+
+    out = io.StringIO()
+    _mode_txt = "delta（目标=当前角，a≡0 的 delta_current）" if delta else "anchor（目标恒为站姿 q_stand=0）"
+    out.write("# 第 0 步 物理基线 · %s（%d 条起点，%.0f s）\n\n" % (_mode_txt, len(rows), a.sec))
+    out.write("模型 `model/scene_selfright_full_v2.xml`，%s；`kp=%s`、`kv=%s`、`τ_max=%s N·m`。\n\n"
+              % (_mode_txt,
+                 np.round(np.asarray(m.actuator_gainprm)[1:4, 0], 2).tolist(),
+                 np.round(kv[:3], 4).tolist(), np.round(trange[:3], 2).tolist()))
+    out.write("| 分组 | n | 起始 bz | 末态 bz | 末态 up_z | 力矩 p95 | 顶满比例 | 末段角速度 |\n")
+    out.write("|---|---|---|---|---|---|---|---|\n")
+    for grp in ("near_stand", "transition", "original"):
+        r = [x for x in rows if x["grp"] == grp]
+        if not r:
+            continue
+        f = lambda k: np.array([x[k] for x in r])
+        out.write("| %s | %d | %.3f | %.3f | %+.2f | %.2f | %.1f%% | %.2f rad/s |\n" % (
+            grp, len(r), f("bz0").mean(), f("bz_end").mean(), f("upz_end").mean(),
+            np.median(f("tau_p95")), 100 * f("sat").mean(), f("qv_end").mean()))
+    ok = [x for x in rows if x["bz_end"] > 0.12 and x["upz_end"] > 0.8]
+    out.write("\n**站住（bz>0.12 且 up_z>0.8）**: %d/%d = %.0f%%\n" % (len(ok), len(rows),
+                                                                 100 * len(ok) / len(rows)))
+    out.write("\n判读：near_stand 组若大面积站不住，且 `顶满比例` 高 → 力矩不够；"
+              "若 `顶满比例` 低但高度掉 → 目标角不产生抗重力偏置（delta 参数化 + kv=0 的锅）；"
+              "若 `末段角速度` 大 → 无阻尼震荡。\n")
+    txt = out.getvalue()
+    print("\n" + txt)
+    if a.md:
+        io.open(a.md, "w", encoding="utf-8").write(txt)
+        print("md →", a.md)
+
+    if a.png:
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+        except ImportError:
+            return 0
+        W, H = 1200, 700
+        img = Image.new("RGB", (W, H), (250, 250, 252))
+        dr = ImageDraw.Draw(img)
+        try:
+            fnt = ImageFont.truetype(r"C:\Windows\Fonts\msyh.ttc", 18)
+            fnt2 = ImageFont.truetype(r"C:\Windows\Fonts\msyh.ttc", 14)
+        except Exception:
+            fnt = fnt2 = ImageFont.load_default()
+        dr.text((24, 14), "第 0 步 物理基线 · %s" % ("delta（目标=当前角, a≡0）" if delta else "anchor（目标恒为站姿）"), font=fnt, fill=(20, 20, 20))
+        x0, y0, w, h = 70, 70, W - 110, H - 150
+        dr.rectangle([x0, y0, x0 + w, y0 + h], fill=(255, 255, 255), outline=(200, 200, 200))
+        ys = [b for v in curves.values() for b in v]
+        lo = min(b.min() for b in ys) - 0.01
+        hi = max(b.max() for b in ys) + 0.01
+        px = lambda k, v: (x0 + 8 + (w - 16) * k / (len(ys[0]) - 1), y0 + h - 26 - (h - 55) * (v - lo) / (hi - lo))
+        for k in range(5):
+            vv = lo + (hi - lo) * k / 4
+            dr.line([x0 + 8, px(0, vv)[1], x0 + w - 8, px(0, vv)[1]], fill=(232, 232, 232))
+            dr.text((x0 - 58, px(0, vv)[1] - 8), "%.3f" % vv, font=fnt2, fill=(110, 110, 110))
+        cols = {"near_stand": (220, 70, 60), "transition": (60, 130, 220), "original": (60, 160, 100)}
+        for grp, cs in curves.items():
+            for b in cs:
+                dr.line([px(k, float(v)) for k, v in enumerate(b)], fill=cols.get(grp, (90, 90, 90)), width=2)
+        yy = y0 + h + 8
+        for i, (grp, c) in enumerate(cols.items()):
+            dr.line([x0 + 8 + i * 190, yy + 10, x0 + 38 + i * 190, yy + 10], fill=c, width=3)
+            dr.text((x0 + 44 + i * 190, yy), grp, font=fnt2, fill=(70, 70, 70))
+        dr.text((x0, yy + 26), "横轴 %.0f s；纵轴机身高度 bz(m)；每条起点一条线（每组合最多画 12 条）"
+                % a.sec, font=fnt2, fill=(110, 110, 110))
+        img.save(a.png)
+        print("png →", a.png)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+
+<!-- ===== 16/18  scripts/_impl_standup.py  ===== -->
+
+# 【文件 16】scripts/_impl_standup.py
+
+*（11-05 改造清单（历史），9377 字节）*
 
 # -*- coding: utf-8 -*-
 r"""Lee 2019 第二个行为「standing-up（趴姿 → 站起来）」的环境补丁。
@@ -1918,9 +2409,9 @@ if __name__ == "__main__":
     sys.exit(patch(check="--apply" not in sys.argv))
 
 
-<!-- ===== 10/11  scripts/_eval_standup.py  ===== -->
+<!-- ===== 17/18  scripts/_eval_standup.py  ===== -->
 
-# 【文件 10】scripts/_eval_standup.py
+# 【文件 17】scripts/_eval_standup.py
 
 *（评估脚本，3900 字节）*
 
@@ -2019,9 +2510,9 @@ if __name__ == "__main__":
     sys.exit(main())
 
 
-<!-- ===== 11/11  model/模型说明.md  ===== -->
+<!-- ===== 18/18  model/模型说明.md  ===== -->
 
-# 【文件 11】model/模型说明.md
+# 【文件 18】model/模型说明.md
 
 *（cat4.0 模型说明，20448 字节）*
 

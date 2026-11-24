@@ -1,0 +1,20 @@
+{
+  "accepted": 240,
+  "rejected": 0,
+  "groups": {
+    "near_stand": 177,
+    "transition": 63
+  },
+  "metrics_columns": [
+    "height",
+    "up_z",
+    "real_contact_feet",
+    "belly_contact",
+    "min_contact_distance"
+  ],
+  "training_started": false,
+  "limitations": [
+    "Admission is static; transition states need policy rollout qualification.",
+    "No training configuration changed. Mixture is an initial candidate, not a learned frontier."
+  ]
+}
